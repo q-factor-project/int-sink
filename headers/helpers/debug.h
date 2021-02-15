@@ -1,13 +1,16 @@
-#pragma once
+#ifndef DEBUG_H
+#define DEBUG_H
 
 #include <stdio.h>
-#include "common_helpers.h"
-#include "eth_helpers.h"
-#include "ip_helpers.h"
-#include "tcp_helpers.h"
-#include "udp_helpers.h"
-#include "int_helpers.h"
+#include "helpers/common.h"
+#include <linux/if_ether.h>
+#include <linux/ip.h>
+#include <linux/tcp.h>
+#include <linux/udp.h>
+#include "types/int.h"
 #include <string.h>
+
+#ifdef __DEBUG__
 
 struct xdp_md {
     void* data;
@@ -115,15 +118,22 @@ int print_iphdr(struct iphdr *iphdr)
     return 0;
 }
 
-int print_udphdr(struct udphdr *udphdr, int body_length)
+int print_udphdr(struct udphdr *udphdr)
 {
     __u8* ptr;
     printf("UDP Header\n\tBytes: ");
     PRINT_BYTES(ptr, udphdr, ((void*)udphdr) + sizeof(struct udphdr))
-    int sum = bpf_csum_diff(0, 0, (void *)udphdr, body_length, 0);
+    int body_length = ntohs(udphdr->len);
+    printf("\n\tLength: %d", body_length);
+
     printf("\n\tChecksum: ");
     PRINT_MEMBER_BYTES(ptr, udphdr, struct udphdr, check)
-    printf("\n\tPartial Checksum: %04hx", sum);
+    int sum = bpf_csum_diff(0, 0, (void *)udphdr, body_length, 0);
+    printf("\n\tPartial Checksum(Header + Body): %04hx", sum);
+    sum = bpf_csum_diff(0, 0, (void *)udphdr, sizeof(struct udphdr), 0);
+    printf("\n\tPartial Checksum(Header): %04hx", sum);
+    sum = bpf_csum_diff(0, 0, (void *)udphdr + sizeof(struct udphdr), body_length - sizeof(struct udphdr), 0);
+    printf("\n\tPartial Checksum(Body): %04hx", sum);
     printf("\n\tBody Bytes: ");
     PRINT_BYTES(ptr, ((void*)udphdr) + sizeof(struct udphdr), ((void*)udphdr) + body_length)
     printf("\n");
@@ -158,3 +168,6 @@ int print_inthdr(struct int14_shim_t *inthdr)
     return 0;
 }
 
+#endif // #ifdef __DEBUG__
+
+#endif
