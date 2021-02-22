@@ -32,7 +32,7 @@
 #endif
 
 #define MIN_COPY (sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr))
-#define MAX_COPY_REMAINDER (sizeof(struct tcphdr) - sizeof(struct udphdr) + MAX_IPOPTLEN*2)
+#define MAX_COPY_REMAINDER (sizeof(struct iphdr) + sizeof(struct tcphdr) + MAX_IPOPTLEN*2)
 
 /**
  * Remove the INT shim, header and 
@@ -42,16 +42,17 @@ int remove_int(struct xdp_md *ctx)
 {
     struct hdr_cursor cursor = 
     {
+        .start = (void*)(long)ctx->data,
         .pos = (void*)(long)ctx->data,
+        .end = (void*)(long)ctx->data_end,
     };
-    void *data_end = (void*)(long)ctx->data_end;
     struct ethhdr *eth;
     struct iphdr *ip;
     struct tcphdr *tcp;
     struct udphdr *udp;
     struct int14_shim_t *int_shim;
     
-    __u16 temp16 = ntohs(parse_ethhdr(&cursor, data_end, &eth));
+    __u16 temp16 = ntohs(parse_ethhdr(&cursor, &eth));
     switch(temp16)
     {
         case ETH_P_IP:
@@ -60,17 +61,17 @@ int remove_int(struct xdp_md *ctx)
             goto PASS;
     }
 
-    __u8 temp8 = parse_iphdr(&cursor, data_end, &ip);
+    __u8 temp8 = parse_iphdr(&cursor, &ip);
 
     switch(temp8)
     {
         case 6: // TCP
             goto PASS;
-            if(parse_tcphdr(&cursor, data_end, &tcp))
+            if(parse_tcphdr(&cursor, &tcp))
                 goto PASS;
             break;
         case 17: // UPD
-            if (parse_udphdr(&cursor, data_end, &udp))
+            if (parse_udphdr(&cursor, &udp))
                 goto PASS;
             break;
         default:
@@ -82,46 +83,65 @@ int remove_int(struct xdp_md *ctx)
     if ((dscp & DSCP_INT) ^ DSCP_INT) // Return true if bits are not set.
         goto PASS;
 
-    // Good up until here
-    parse_int(&cursor, data_end, &int_shim);
+    if (parse_inthdr(&cursor, &int_shim))
+        goto PASS;
 
-    __s16 length_delta = -(((__u16)int_shim->len) << 2);
+    __u16 int_totcsum = int_checksum(int_shim, cursor.end); //Using cursor.pos really should have worked, but didnt
 
+    size_t int_length = int_shim->len;
+    int_length = int_length << 2;
+
+    void * source_cursor = ((void *)int_shim);
+    void * dest_cursor = cursor.pos;
+
+    if (source_cursor > cursor.end || dest_cursor > cursor.end)
+        goto PASS;
+
+    if (source_cursor - MIN_COPY < cursor.start || dest_cursor - MIN_COPY < cursor.start)
+        goto PASS;
+
+    // Begin modifying
+
+    update_udphdr_check(udp, ~int_totcsum);
+
+    __s16 length_delta = -int_length;
+    // In order to complete this
     update_iphdr_length(ip, length_delta);
     udpate_iphdr_tos(ip, ((__u8*)int_shim)[3]);
     udpate_udphdr_length(udp, length_delta);
-    if (((void *)int_shim) + int_shim->len > data_end)
-        goto PASS;
-    __u16 int_totcsum = int_checksum(int_shim);
-    update_udphdr_check(udp, ~int_totcsum);
-    
-
-    // TODO: Replace memmove with constant size operation
-    // memmove((void *)ctx->data - length_delta, (void*)ctx->data, (__u64)int_shim - ctx->data);
 
     int copy_size;
-    void * source_cursor = ((void *)int_shim);
-    void * dest_cursor = ((void *)int_shim) - length_delta;
-
-    if (dest_cursor > data_end)
-        goto PASS;
 
     // Copy min required
 
-    copy_size = MIN_COPY;
+    copy_size = sizeof(struct ethhdr);
     source_cursor -= copy_size;
     dest_cursor -= copy_size;
-    memmove(dest_cursor, source_cursor, copy_size);
 
-    // Copy remainder
-    // max remainder = (sizeof(struct tcphdr) - sizeof(struct udphdr) + MAX_IPOPTLEN*2)
+    memmove(dest_cursor, source_cursor, copy_size); // Most problematic part complete
 
-    copy_size = ((__u64)int_shim - (__u64)data_end) - copy_size;
+    //copy_size = sizeof(struct iphdr);
+    //source_cursor -= copy_size;
+    //dest_cursor -= copy_size;
+
+    //memmove(dest_cursor, source_cursor, copy_size);//Point of failure
+
+    // copy_size = sizeof(struct udphdr);
+    // source_cursor -= copy_size;
+    // dest_cursor -= copy_size;
+
+    // memmove(dest_cursor, source_cursor, copy_size);
+
+    copy_size = source_cursor - cursor.start;
 
     #pragma unroll
     for (int i = 0; i < MAX_COPY_REMAINDER / 4; i++)
     {
-        if (i < copy_size)
+        if (i >= copy_size || source_cursor < cursor.start)
+        {
+            break;
+        }
+        else
         {
             source_cursor-= 4, dest_cursor -= 4;
             *((__u32 *)dest_cursor) = *((__u32 *)source_cursor);

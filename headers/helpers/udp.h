@@ -4,15 +4,17 @@
 #include <linux/udp.h>
 
 static __always_inline int parse_udphdr(struct hdr_cursor *nh,
-                                         void *data_end,
                                          struct udphdr **udphdr)
 {
     struct udphdr *udp = nh->pos;
 
-    if (udp + 1 > data_end)
+    if (udp + 1 > nh->end)
         return -1;
 
-    size_t hdrsize = sizeof(*udp);
+    size_t hdrsize = sizeof(struct udphdr);
+
+    if (nh->pos + hdrsize > nh->end)
+        return -1;
 
     nh->pos += hdrsize;
     *udphdr = udp;

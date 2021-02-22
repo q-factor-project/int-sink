@@ -38,7 +38,9 @@ $(FILTER_OBJ): %.xdp.o: %.xdp.c $(BPF_HELPER_HEADERS) $(OBJECT_LIBBPF)
 	    -Wno-compare-distinct-pointer-types \
 	    -Werror \
 	    -O2 -emit-llvm -c -g -o ${@:.o=.ll} $<
+	llc -march=bpf -filetype=asm -o ${@:.o=.s} ${@:.o=.ll}
 	llc -march=bpf -filetype=obj -o $@ ${@:.o=.ll}
+	
 
 test: test.c $(DEBUG_HEADERS)
 	gcc test.c -o $@ -D __DEBUG__ -I$(INCLUDE_DIR)

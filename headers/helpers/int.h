@@ -3,16 +3,25 @@
 #include "helpers/common.h"
 #include "types/int.h"
 
-static __always_inline int parse_int(struct hdr_cursor *nh,
-                                              void *data_end,
+static __always_inline int parse_inthdr(struct hdr_cursor *nh,
                                               struct int14_shim_t **int14_shim_t)
 {
     struct int14_shim_t *shim = nh->pos;
     
-    if (shim + 1 > data_end)
+    if (shim + 1 > nh->end)
         return -1;
     
+    nh->pos += sizeof(struct int14_shim_t);
+
     size_t hdrsize = ((size_t)shim->len) << 2;
+
+    if (hdrsize < sizeof(struct int14_shim_t))
+        return -1;
+
+    hdrsize -= sizeof(struct int14_shim_t);
+
+    if (((void *)shim)  + hdrsize > nh->end)//Attach packet bounds to shim
+        return -1;
 
     nh->pos += hdrsize;
     *int14_shim_t = shim;
@@ -25,19 +34,26 @@ static __always_inline int parse_int(struct hdr_cursor *nh,
 
 // calculate the checksum difference for removing INT data
 // Producing incorrect checksum
-static __always_inline __u16 int_checksum(struct int14_shim_t *int14_shim_t)
+static __always_inline __u16 int_checksum(struct int14_shim_t *int14_shim_t, void *data_end)
 {
-    __be32 *ptr = (void*)int14_shim_t;
-    __be32 *end = ptr + int14_shim_t->len;
+    void *ptr = (void*)int14_shim_t;
+    void *end = ptr + (int14_shim_t->len << 2);
     __u64 sum = 0;
 
+    ptr += sizeof(__be32);
+    
     #pragma unroll
     for (int i = 0; i < MAX_INT_LENGTH; i++)
     {
-        if (ptr < end)
+        if (ptr > end || ptr > data_end)
         {
-            sum += *ptr;
-            ptr++;
+            // Do nothing
+        }
+        else//Inchworm up the packet
+        {
+            ptr -= sizeof(__be32);
+            sum += *((__be32*)ptr);
+            ptr += sizeof(__be32) * 2;
         }
     }
 

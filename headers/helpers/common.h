@@ -6,7 +6,9 @@
 #include <arpa/inet.h>
 
 struct hdr_cursor {
+    void * start;
     void * pos;
+    void * end;
 };
 
 struct ippseudohdr {

@@ -6,15 +6,24 @@
 #define MAX_IP_LENGTH (sizeof(struct iphdr) + MAX_IPOPTLEN)
 
 static __always_inline __u8 parse_iphdr(struct hdr_cursor *nh,
-                                      void* data_end,
                                       struct iphdr **iphdr)
 {
     struct iphdr *ip = nh->pos;
     
-    if(ip + 1 > data_end) // Required explicit check before reading anything in packet
+    if(ip + 1 > nh->end) // Required explicit check before reading anything in packet
         return -1;
 
+    nh->pos += sizeof(struct iphdr); // Trick the bpf verifier into increasing the min
+
     size_t hdrsize = ((size_t)ip->ihl) << 2; // Read size of header in bytes
+
+    if (hdrsize < sizeof(struct iphdr))
+        return -1;
+
+    hdrsize -= sizeof(struct iphdr);
+
+    if (nh->pos + hdrsize > nh->end)
+        return -1;
 
     nh->pos += hdrsize;
     *iphdr = ip;

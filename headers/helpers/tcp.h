@@ -6,15 +6,20 @@
 #define MAX_TCP_LENGTH 60
 
 static __always_inline int parse_tcphdr(struct hdr_cursor *nh,
-                                         void *data_end,
                                          struct tcphdr **tcphdr)
 {
     struct tcphdr *tcp = nh->pos;
 
-    if(tcp + 1 > data_end) // Required explicit check
+    if(tcp + 1 > nh->end) // Required explicit check
         return -1;
 
     size_t hdrsize = ((size_t)tcp->doff) << 2;
+
+    if (hdrsize < sizeof(struct tcphdr))
+        return -1;
+
+    if (nh->pos + hdrsize > nh->end)
+        return -1;
 
     nh->pos += hdrsize;
     *tcphdr = tcp;
