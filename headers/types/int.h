@@ -1,4 +1,4 @@
-#pragma once
+#ifndef TYPES_INT_H
 #include <asm/byteorder.h>
 
 #define DSCP_INT (0x17)
@@ -47,3 +47,5 @@ struct telemetry_report_v10_t {
     __u32 seqNumber;
     __u32 ingressTimestamp;
 };
+
+#endif

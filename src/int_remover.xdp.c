@@ -10,8 +10,7 @@
  */
 
 
-#include <linux/bpf.h>
-#include <bpf/bpf_helpers.h>
+#include "int_remover.xdp.h"
 #include "helpers/common.h"
 #include "helpers/ethernet.h"
 #include "helpers/ip.h"
@@ -19,20 +18,8 @@
 #include "helpers/udp.h"
 #include "helpers/int.h"
 
-#ifndef memset
-# define memset(dest, chr, n)   __builtin_memset((dest), (chr), (n))
-#endif
-
-#ifndef memcpy
-# define memcpy(dest, src, n)   __builtin_memcpy((dest), (src), (n))
-#endif
-
-#ifndef memmove
-# define memmove(dest, src, n)  __builtin_memmove((dest), (src), (n))
-#endif
-
 #define MIN_COPY (sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr))
-#define MAX_COPY_REMAINDER (sizeof(struct iphdr) + sizeof(struct tcphdr) + MAX_IPOPTLEN*2)
+#define MAX_COPY_REMAINDER (sizeof(struct tcphdr) - sizeof(struct udphdr) + MAX_IPOPTLEN*2)
 
 /**
  * Remove the INT shim, header and 
@@ -77,7 +64,6 @@ int remove_int(struct xdp_md *ctx)
         default:
             goto PASS;
     }
-
     //Read DSCP from ip header
     __u8 dscp = ip->tos >> 2;
     if ((dscp & DSCP_INT) ^ DSCP_INT) // Return true if bits are not set.
@@ -114,7 +100,7 @@ int remove_int(struct xdp_md *ctx)
 
     // Copy min required
 
-    copy_size = sizeof(struct ethhdr);
+    copy_size = MIN_COPY;
     source_cursor -= copy_size;
     dest_cursor -= copy_size;
 

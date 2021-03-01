@@ -13,19 +13,16 @@ static __always_inline __u8 parse_iphdr(struct hdr_cursor *nh,
     if(ip + 1 > nh->end) // Required explicit check before reading anything in packet
         return -1;
 
-    nh->pos += sizeof(struct iphdr); // Trick the bpf verifier into increasing the min
-
     size_t hdrsize = ((size_t)ip->ihl) << 2; // Read size of header in bytes
 
-    if (hdrsize < sizeof(struct iphdr))
+    if (hdrsize != sizeof(struct iphdr))
         return -1;
-
-    hdrsize -= sizeof(struct iphdr);
 
     if (nh->pos + hdrsize > nh->end)
         return -1;
 
-    nh->pos += hdrsize;
+    nh->pos += sizeof(struct iphdr);
+    // nh->pos += hdrsize;
     *iphdr = ip;
 
     return ip->protocol; // Return Protocol

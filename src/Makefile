@@ -42,8 +42,8 @@ $(FILTER_OBJ): %.xdp.o: %.xdp.c $(BPF_HELPER_HEADERS) $(OBJECT_LIBBPF)
 	llc -march=bpf -filetype=obj -o $@ ${@:.o=.ll}
 	
 
-test: test.c $(DEBUG_HEADERS)
-	gcc test.c -o $@ -D __DEBUG__ -I$(INCLUDE_DIR)
+test: test.c int_remover.xdp.c ./debug/print.c ./mock/bpf.c $(DEBUG_HEADERS)
+	gcc -o $@ -D __DEBUG__ -I$(INCLUDE_DIR) test.c int_remover.xdp.c ./debug/print.c ./mock/bpf.c  
 
 $(OBJECT_LIBBPF):
 	@if [ ! -d $(LIBBPF_DIR) ]; then \
