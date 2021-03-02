@@ -19,6 +19,6 @@ static __always_inline __be16 parse_ethhdr(struct hdr_cursor *nh,
     nh->pos += hdrsize;
     *ethhdr = eth;
 
-    return eth->h_proto;
+    return ntohs(eth->h_proto);
 }
 #endif

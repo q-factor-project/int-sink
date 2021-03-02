@@ -1,8 +1,8 @@
 #include "mock/bpf.h"
 
-long bpf_xdp_adjust_head(struct xdp_md *ctx, int length)
+long bpf_xdp_adjust_head(struct xdp_md *ctx, int offset)
 {
-    ctx->data -= length;
+    ctx->data += offset;
     return 0;
 }
 

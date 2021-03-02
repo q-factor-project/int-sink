@@ -45,7 +45,7 @@ int print_ippseudohdr(struct ippseudohdr *ippseudohdr)
 {
     printf("IP Pseudo Header\n\tBytes: ");
     PRINT_BYTES(ippseudohdr, ((void*)ippseudohdr) + sizeof(struct ippseudohdr))
-    printf("\n\tBody length: %d", ippseudohdr->body_length);
+    printf("\n\tBody length: %d", ntohs(ippseudohdr->body_length));
     int sum = bpf_csum_diff(0, 0, (void *)ippseudohdr, sizeof(struct ippseudohdr), 0);
     printf("\n\tPartial Checksum: %04hx", sum);
     printf("\n");

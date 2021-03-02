@@ -39,7 +39,7 @@ int remove_int(struct xdp_md *ctx)
     struct udphdr *udp;
     struct int14_shim_t *int_shim;
     
-    __u16 temp16 = ntohs(parse_ethhdr(&cursor, &eth));
+    __u16 temp16 = parse_ethhdr(&cursor, &eth);
     switch(temp16)
     {
         case ETH_P_IP:
@@ -136,7 +136,8 @@ int remove_int(struct xdp_md *ctx)
 
 
     // Operation completed
-    bpf_xdp_adjust_head(ctx, length_delta);
+    if(bpf_xdp_adjust_head(ctx, int_length))
+        return XDP_DROP;
     
 PASS:
     return XDP_PASS;
