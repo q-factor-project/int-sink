@@ -47,14 +47,11 @@ static __always_inline __u16 int_checksum(struct int14_shim_t *int14_shim_t, voi
     {
         if (ptr > end || ptr > data_end)
         {
-            // Do nothing
+            break;
         }
-        else//Inchworm up the packet
-        {
-            ptr -= sizeof(__be32);
-            sum += *((__be32*)ptr);
-            ptr += sizeof(__be32) * 2;
-        }
+        ptr -= sizeof(__be32);
+        sum += *((__be32*)ptr);
+        ptr += sizeof(__be32) * 2;
     }
 
     sum = (sum >> 32) + (sum & 0xFFFFFFFF); // Fold into 32 bits

@@ -18,6 +18,19 @@
 #include "helpers/udp.h"
 #include "helpers/int.h"
 
+
+#ifndef memset
+# define memset(dest, chr, n)   __builtin_memset((dest), (chr), (n))
+#endif
+
+#ifndef memcpy
+# define memcpy(dest, src, n)   __builtin_memcpy((dest), (src), (n))
+#endif
+
+#ifndef memmove
+# define memmove(dest, src, n)  __builtin_memmove((dest), (src), (n))
+#endif
+
 #define MIN_COPY (sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr))
 #define MAX_COPY_REMAINDER (sizeof(struct tcphdr) - sizeof(struct udphdr) + MAX_IPOPTLEN*2)
 
@@ -35,42 +48,39 @@ int remove_int(struct xdp_md *ctx)
     };
     struct ethhdr *eth;
     struct iphdr *ip;
-    struct tcphdr *tcp;
-    struct udphdr *udp;
+    struct tcphdr *tcp = NULL;
+    struct udphdr *udp = NULL;
     struct int14_shim_t *int_shim;
     
-    __u16 temp16 = parse_ethhdr(&cursor, &eth);
-    switch(temp16)
+    switch(parse_ethhdr(&cursor, &eth))
     {
         case ETH_P_IP:
             break;
         default:
-            goto PASS;
+            return XDP_PASS;
     }
 
-    __u8 temp8 = parse_iphdr(&cursor, &ip);
-
-    switch(temp8)
+    switch(parse_iphdr(&cursor, &ip))
     {
         case 6: // TCP
-            goto PASS;
+            return XDP_PASS;
             if(parse_tcphdr(&cursor, &tcp))
-                goto PASS;
+                return XDP_PASS;
             break;
         case 17: // UPD
             if (parse_udphdr(&cursor, &udp))
-                goto PASS;
+                return XDP_PASS;
             break;
         default:
-            goto PASS;
+            return XDP_PASS;
     }
     //Read DSCP from ip header
     __u8 dscp = ip->tos >> 2;
     if ((dscp & DSCP_INT) ^ DSCP_INT) // Return true if bits are not set.
-        goto PASS;
+        return XDP_PASS;
 
     if (parse_inthdr(&cursor, &int_shim))
-        goto PASS;
+        return XDP_PASS;
 
     __u16 int_totcsum = int_checksum(int_shim, cursor.end); //Using cursor.pos really should have worked, but didnt
 
@@ -81,10 +91,10 @@ int remove_int(struct xdp_md *ctx)
     void * dest_cursor = cursor.pos;
 
     if (source_cursor > cursor.end || dest_cursor > cursor.end)
-        goto PASS;
+        return XDP_PASS;
 
     if (source_cursor - MIN_COPY < cursor.start || dest_cursor - MIN_COPY < cursor.start)
-        goto PASS;
+        return XDP_PASS;
 
     // Begin modifying
 
@@ -127,11 +137,8 @@ int remove_int(struct xdp_md *ctx)
         {
             break;
         }
-        else
-        {
-            source_cursor-= 4, dest_cursor -= 4;
-            *((__u32 *)dest_cursor) = *((__u32 *)source_cursor);
-        }
+        source_cursor-= 4, dest_cursor -= 4;
+        *((__u32 *)dest_cursor) = *((__u32 *)source_cursor);
     }
 
 
@@ -139,6 +146,5 @@ int remove_int(struct xdp_md *ctx)
     if(bpf_xdp_adjust_head(ctx, int_length))
         return XDP_DROP;
     
-PASS:
     return XDP_PASS;
 }
