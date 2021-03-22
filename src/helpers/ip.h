@@ -1,6 +1,6 @@
 #if !defined(__IP_HELPERS_H)
 #define __IP_HELPERS_H
-#include "helpers/common.h"
+#include "common.h"
 #include <linux/ip.h>
 
 #define MAX_IP_LENGTH (sizeof(struct iphdr) + MAX_IPOPTLEN)

@@ -1,6 +1,6 @@
 #if !defined(__ETH_HELPERS_H)
 #define __ETH_HELPERS_H
-#include "helpers/common.h"
+#include "common.h"
 #include <linux/if_ether.h>
 
 static __always_inline __be16 parse_ethhdr(struct hdr_cursor *nh,

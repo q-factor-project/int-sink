@@ -1,7 +1,7 @@
 #ifndef MOCK_BPF_H
 #define MOCK_BPF_H
 
-#include "mock/types/xdp.h"
+#include "types/xdp.h"
 #include <linux/types.h>
 
 enum xdp_action {

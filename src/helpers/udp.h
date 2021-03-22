@@ -1,6 +1,6 @@
 #if !defined(__UDP_HELPERS_H)
 #define __UDP_HELPERS_H
-#include "helpers/common.h"
+#include "common.h"
 #include <linux/udp.h>
 
 static __always_inline int parse_udphdr(struct hdr_cursor *nh,

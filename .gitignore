@@ -1,3 +1,4 @@
 *.s
 *.ll
 *.o
+output/

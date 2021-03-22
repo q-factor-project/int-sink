@@ -1,8 +1,8 @@
 
-#include "debug/print.h"
+#include "print.h"
 #include <stdio.h>
 #include <string.h>
-#include "mock/bpf.h"
+#include "../mock/bpf.h"
 
 #define PRINT_BYTES(_start, _end) \
 {\

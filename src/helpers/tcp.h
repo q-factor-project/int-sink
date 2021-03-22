@@ -1,6 +1,6 @@
 #if !defined(__TCP_HELPERS_H)
 #define __TCP_HELPERS_H
-#include "helpers/common.h"
+#include "common.h"
 #include <linux/tcp.h>
 
 #define MAX_TCP_LENGTH 60

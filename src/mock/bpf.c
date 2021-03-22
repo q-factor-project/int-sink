@@ -1,4 +1,4 @@
-#include "mock/bpf.h"
+#include "bpf.h"
 
 long bpf_xdp_adjust_head(struct xdp_md *ctx, int offset)
 {

@@ -1,14 +1,14 @@
 #ifndef DEBUG_PRINT_H
 #define DEBUG_PRINT_H
 
-#include "helpers/common.h"
+#include "../helpers/common.h"
 #include <linux/if_ether.h>
 #include <linux/ip.h>
 #include <linux/tcp.h>
 #include <linux/udp.h>
-#include "types/int.h"
-#include "types/ip_pseudo.h"
-#include "mock/types/xdp.h"
+#include "../types/int.h"
+#include "../types/ip_pseudo.h"
+#include "../mock/types/xdp.h"
 
 int print_xdp_md(struct xdp_md *ctx);
 

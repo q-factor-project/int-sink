@@ -1,7 +1,7 @@
 #if !defined(__INT_HELPERS_H)
 #define __INT_HELPERS_H
-#include "helpers/common.h"
-#include "types/int.h"
+#include "common.h"
+#include "../types/int.h"
 
 static __always_inline int parse_inthdr(struct hdr_cursor *nh,
                                               struct int14_shim_t **int14_shim_t)
