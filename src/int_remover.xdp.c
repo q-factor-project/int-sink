@@ -37,7 +37,7 @@
 /**
  * Remove the INT shim, header and 
  */
-SEC("xdp_remove_int")
+SEC("xdp")
 int remove_int(struct xdp_md *ctx)
 {
     struct hdr_cursor cursor = 
