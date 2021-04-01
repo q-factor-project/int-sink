@@ -34,12 +34,17 @@
 #define MIN_COPY (sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr))
 #define MAX_COPY_REMAINDER (sizeof(struct tcphdr) - sizeof(struct udphdr) + MAX_IPOPTLEN*2)
 
+
+int counter = 0;
+int dropped = 0;
+
 /**
  * Remove the INT shim, header and 
  */
 SEC("xdp")
 int remove_int(struct xdp_md *ctx)
 {
+    counter++;
     struct hdr_cursor cursor = 
     {
         .start = (void*)(long)ctx->data,
@@ -144,7 +149,10 @@ int remove_int(struct xdp_md *ctx)
 
     // Operation completed
     if(bpf_xdp_adjust_head(ctx, int_length))
+    {
+        dropped++;
         return XDP_DROP;
+    }
     
     return XDP_PASS;
 }

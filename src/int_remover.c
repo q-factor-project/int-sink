@@ -35,18 +35,23 @@ int main(int argc, char **argv)
     int prog_fd;
     char *if_name;
     
-
-    signal(SIGINT, interrupt_handler);
-    signal(SIGTERM, interrupt_handler);
-
     if (argc != ARG_COUNT)
     {
         fprintf(stderr, "Invalid argument count\n");
-        goto CLEANUP;
+        return 1;
     }
 
     if_name = argv[INTERFACE_ARG];
     ifindex = if_nametoindex(if_name);
+
+    if(ifindex < 0)
+    {
+        fprintf(stderr, "Invalid interface: %s\n", if_name);
+        return 1;
+    }
+
+    signal(SIGINT, interrupt_handler);
+    signal(SIGTERM, interrupt_handler);
 
     obj = int_remover_xdp__open();
 
@@ -82,6 +87,8 @@ int main(int argc, char **argv)
         goto CLEANUP;
     }
 
+    printf("Fully attached\n");
+
     pause();
 
 CLEANUP:
@@ -100,6 +107,8 @@ static void interrupt_handler(int signum)
 static void cleanup()
 {
     printf("Cleaning up\n");
+    printf("Packets processed: %d\n", obj->bss->counter);
+    printf("Packets dropped: %d\n", obj->bss->dropped);
     // Detach XDP program from interface
     bpf_set_link_xdp_fd(ifindex, -1, xdp_flags);
     // Detach XDP program
