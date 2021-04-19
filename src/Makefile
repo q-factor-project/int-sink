@@ -7,29 +7,49 @@ APP = int_remover
 
 OUTPUT_DIR := $(abspath ../output/)
 
-INCLUDE_DIR := $(OUTPUT_DIR)
+SRC_DIR := $(abspath ./)
 
 LIBBPF_DIR := $(abspath ../libbpf/src/)
 
 OBJECT_LIBBPF := $(abspath $(OUTPUT_DIR)/libbpf.a)
 
-UNIVERSAL_INCLUDES += -I$(OUTPUT_DIR)
+UNIVERSAL_INCLUDES += -I$(OUTPUT_DIR) -I$(SRC_DIR)
 
-# Filter Dependencies
+export OUTPUT_DIR SRC_DIR LIBBPF_DIR OBJECT_LIBBPF UNIVERSAL_INCLUDES
 
-FILTER_OBJ_CFLAGS +=
+# Genral C Compilation
 
-FILTER_ASM_CFLAGS += $(UNIVERSAL_INCLUDES)
+CC = clang
 
-FILTER_ASM_CFLAGS += -Wall
-FILTER_ASM_CFLAGS += -Wno-unused-value
-FILTER_ASM_CFLAGS += -Wno-pointer-sign
-FILTER_ASM_CFLAGS += -Wno-compare-distinct-pointer-types
-FILTER_ASM_CFLAGS += -Werror
-FILTER_ASM_CFLAGS += -O2
-FILTER_ASM_CFLAGS += -g
-FILTER_ASM_CFLAGS += -S
-FILTER_ASM_CFLAGS += -c
+AR = llvm-ar
+
+CFLAGS += $(UNIVERSAL_INCLUDES)
+
+LDFLAGS += -L$(OUTPUT_DIR)
+LDLIBS += -l:libbpf.a
+LDLIBS += -lelf
+LDLIBS += -lz
+
+export CC AR CFLAGS LDFLAGS LDLIBS
+
+# BPF compilation
+
+BPFCFLAGS += $(UNIVERSAL_INCLUDES)
+BPFCFLAGS += -Wall
+BPFCFLAGS += -Wno-unused-value
+BPFCFLAGS += -Wno-pointer-sign
+BPFCFLAGS += -Wno-compare-distinct-pointer-types
+BPFCFLAGS += -Werror
+BPFCFLAGS += -O2
+BPFCFLAGS += -g
+BPFCFLAGS += -S
+BPFCFLAGS += -c
+
+BPF_ARCH := -target bpf
+
+COMPILE.bpf.c = $(CC) $(BPFCFLAGS) $(BPF_ARCH)
+
+export COMPILE.bpf.c BPFCFLAGS BPF_ARCH
 
 # Define loader dependencies
 
@@ -53,14 +73,21 @@ all: $(APP)
 $(APP): %: %.c $(OUTPUT_DIR)/%.skel.h $(OBJECT_LIBBPF) | $(OUTPUT_DIR)
 	gcc -o $@ $< $(LOADER_CFLAGS)
 
-$(OUTPUT_DIR)/%.skel.h: $(OUTPUT_DIR)/%.xdp.o | $(OUTPUT_DIR)
+
+int_remover2.bpf.o: xdp/int_remover.bpf.o helpers/bpf.a
+	$(CC) $(OUTPUT_OPTION) $^
+
+%.skel.h: %.bpf.o
 	bpftool gen skeleton $< > $@
 
-$(OUTPUT_DIR)/%.xdp.o: $(OUTPUT_DIR)/%.xdp.ll | $(OUTPUT_DIR)
-	llc $(FILTER_OBJ_CFLAGS) -march=bpf -filetype=obj -o $@ $<
+%.bpf.o: %.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h
+	$(MAKE) -C $(dir $@) $(notdir $@) 
 
-$(OUTPUT_DIR)/%.xdp.ll: %.xdp.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h $(wildcard **/*.h) | $(OUTPUT_DIR)
-	clang -target bpf $(FILTER_ASM_CFLAGS) -emit-llvm -o $@ $<
+%.bpf.ll: %.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h
+	$(MAKE) -C $(dir $@) $(notdir $@)
+
+%.a: $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h
+	$(MAKE) -C $(dir $@) $(notdir $@)
 
 $(OUTPUT_DIR)/vmlinux.h: /sys/kernel/btf/vmlinux | $(OUTPUT_DIR)
 	bpftool btf dump file $< format c > $@

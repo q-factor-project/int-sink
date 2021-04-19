@@ -1,4 +1,5 @@
 *.s
 *.ll
 *.o
-output/
+*.skel.h
+/output/
