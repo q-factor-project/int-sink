@@ -3,14 +3,14 @@
 #include "cursor.h"
 #include "endian.h"
 
-int parse_ethhdr(struct hdr_cursor *nh, struct ethhdr **ethhdr)
+__u32 parse_ethhdr(struct hdr_cursor *nh, struct ethhdr **ethhdr)
 {
     struct ethhdr *eth = nh->pos;
     
     if(eth + 1 > nh->end)
         return -1;
     
-    unsigned long hdrsize = sizeof(struct ethhdr);
+    __u32 hdrsize = sizeof(struct ethhdr);
 
     if(nh->pos + hdrsize > nh->end)
         return -1;

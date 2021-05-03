@@ -32,7 +32,6 @@ int parse_inthdr(struct hdr_cursor *nh, struct int14_shim_t **int14_shim_t)
 }
 
 // calculate the checksum difference for removing INT data
-// Producing incorrect checksum
 __u16 int_checksum(struct int14_shim_t *int14_shim_t, void *data_end)
 {
     void *ptr = (void*)int14_shim_t;

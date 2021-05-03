@@ -62,38 +62,44 @@ LIB_LINKS += -lz
 
 LOADER_CFLAGS += $(LIB_LINKS)
 
-.PHONY: clean
-
 .DELETE_ON_ERROR:
 
 .SECONDARY:
 
 all: $(APP)
 
+####################
+# Explicit Targets #
+####################
+
 $(APP): %: %.c $(OUTPUT_DIR)/%.skel.h $(OBJECT_LIBBPF) | $(OUTPUT_DIR)
 	gcc -o $@ $< $(LOADER_CFLAGS)
-
 
 int_remover2.bpf.o: xdp/int_remover.bpf.o helpers/bpf.a
 	$(CC) $(OUTPUT_OPTION) $^
 
-%.skel.h: %.bpf.o
+test: test.c int_remover.xdp.c ./debug/print.c ./mock/bpf.c $(INCLUDE_HEADERS)
+	gcc -o $@ -D __DEBUG__ test.c int_remover.xdp.c ./debug/print.c ./mock/bpf.c
+
+#################
+# Build Objects #
+#################
+
+%.skel.h: %.bpf.o 
 	bpftool gen skeleton $< > $@
 
-%.bpf.o: %.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h
+%.bpf.o: %.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h FORCE
 	$(MAKE) -C $(dir $@) $(notdir $@) 
 
-%.bpf.ll: %.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h
+%.bpf.ll: %.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h FORCE
 	$(MAKE) -C $(dir $@) $(notdir $@)
 
-%.a: $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h
+%.a: $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h FORCE
 	$(MAKE) -C $(dir $@) $(notdir $@)
 
-$(OUTPUT_DIR)/vmlinux.h: /sys/kernel/btf/vmlinux | $(OUTPUT_DIR)
-	bpftool btf dump file $< format c > $@
-
-$(OUTPUT_DIR):
-	mkdir -p $@
+#################
+# Build library #
+#################
 
 $(OBJECT_LIBBPF):
 	$(MAKE) -C $(LIBBPF_DIR) BUILD_STATIC_ONLY=1 \
@@ -101,9 +107,31 @@ $(OBJECT_LIBBPF):
 	INCLUDEDIR= LIBDIR= UAPIDIR=                \
 	install
 
-test: test.c int_remover.xdp.c ./debug/print.c ./mock/bpf.c $(INCLUDE_HEADERS)
-	gcc -o $@ -D __DEBUG__ test.c int_remover.xdp.c ./debug/print.c ./mock/bpf.c
+$(OUTPUT_DIR)/vmlinux.h: /sys/kernel/btf/vmlinux | $(OUTPUT_DIR)
+	bpftool btf dump file $< format c > $@
 
-clean:
-	rm -rf $(OUTPUT_DIR)
-	rm $(APP)
+$(OUTPUT_DIR):
+	mkdir -p $@
+
+##################
+# Cleaning rules #
+##################
+
+SUBDIRS := helpers xdp
+
+phony += $(SUBDIRS)
+
+$(SUBDIRS):
+	$(MAKE) -C $@ $(MAKECMDGOALS)
+
+phony += clean
+
+clean: $(SUBDIRS)
+	-rm -rf $(OUTPUT_DIR)
+	-rm -f $(APP)
+	-rm -f *.skel.h
+	-rm -f int_remover2.bpf.o
+
+FORCE:
+
+.PHONY: $(phony)

@@ -17,19 +17,7 @@
 #include "helpers/tcp.h"
 #include "helpers/udp.h"
 #include "helpers/int.h"
-
-
-#ifndef memset
-# define memset(dest, chr, n)   __builtin_memset((dest), (chr), (n))
-#endif
-
-#ifndef memcpy
-# define memcpy(dest, src, n)   __builtin_memcpy((dest), (src), (n))
-#endif
-
-#ifndef memmove
-# define memmove(dest, src, n)  __builtin_memmove((dest), (src), (n))
-#endif
+#include "helpers/memory.h"
 
 #define MIN_COPY (sizeof(struct ethhdr) + sizeof(struct iphdr) + sizeof(struct udphdr))
 #define MAX_COPY_REMAINDER (sizeof(struct tcphdr) - sizeof(struct udphdr) + MAX_IPOPTLEN*2)

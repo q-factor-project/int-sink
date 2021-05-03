@@ -1,0 +1,22 @@
+phony :=
+
+bpf.a: $(obj-bpf)
+	$(AR) $(ARFLAGS) $@ $^
+
+%.bpf.o: %.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h
+	$(COMPILE.bpf.c) $(OUTPUT_OPTION) $<
+
+%.bpf.ll: %.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h
+	$(COMPILE.bpf.c) -emit-llvm $(OUTPUT_OPTION) $<
+
+phony += clean
+
+clean:
+	-rm -f bpf.a
+	-rm -f $(obj-bpf)
+
+.PHONY: $(phony)
+
+.DELETE_ON_ERROR:
+
+.SECONDARY:

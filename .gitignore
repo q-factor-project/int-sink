@@ -3,3 +3,4 @@
 *.o
 *.skel.h
 /output/
+*.a
