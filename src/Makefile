@@ -132,6 +132,8 @@ clean: $(SUBDIRS)
 	-rm -f *.skel.h
 	-rm -f int_remover2.bpf.o
 
+phony += FORCE
+
 FORCE:
 
 .PHONY: $(phony)
