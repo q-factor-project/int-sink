@@ -17,8 +17,8 @@ struct raw_ip { // Buffer for ip data
 
 static __u32 packet_pop_ip(struct xdp_md *ctx, struct raw_ip *buffer);
 static __u32 packet_push_ip(struct xdp_md *ctx, struct raw_ip *buffer);
-static void ip_update_length(struct iphdr *iphdr, __u16 delta);
-static void ip_update_tos(struct iphdr *iphdr, __u8 new_tos);
+static void ip_update_length(struct iphdr *ip, __u16 delta);
+static void ip_update_tos(struct iphdr *ip, __u8 new_tos);
 
 __u32 process_ipv4(struct xdp_md *ctx)
 {
@@ -101,7 +101,7 @@ static __u32 packet_pop_ip(struct xdp_md *ctx, struct raw_ip *buffer)
     __u32 size = ip->ihl;
     size <<= 2;
 
-    if (size < sizeof(struct iphdr))
+    if (size < sizeof(*ip))
         return NONFATAL_ERR;
 
     if ( ( pkt + size ) > end)
@@ -158,30 +158,30 @@ static __u32 packet_push_ip(struct xdp_md *ctx, struct raw_ip *buffer)
     return NO_ERR;
 }
 
-static void ip_update_check(struct iphdr *iphdr, __u16 delta);
+static void ip_update_check(struct iphdr *ip, __u16 delta);
 
-static void ip_update_length(struct iphdr *iphdr, __u16 delta)
+static void ip_update_length(struct iphdr *ip, __u16 delta)
 {
-    iphdr->tot_len = htons(ntohs(iphdr->tot_len) + delta);
-    ip_update_check(iphdr, delta);
+    ip->tot_len = htons(ntohs(ip->tot_len) + delta);
+    ip_update_check(ip, delta);
 }
 
 
-static void ip_update_tos(struct iphdr *iphdr, __u8 new_tos)
+static void ip_update_tos(struct iphdr *ip, __u8 new_tos)
 {
-    __u16 old = ntohs(((__u16*)iphdr)[0]);
-    iphdr->tos = new_tos;
-    __u32 delta = ntohs(((__u16*)iphdr)[0]) - old;
+    __u16 old = ntohs(((__u16*)ip)[0]);
+    ip->tos = new_tos;
+    __u32 delta = ntohs(((__u16*)ip)[0]) - old;
     delta = (delta & 0xFFFF) + (delta >> 16);
     delta = (delta & 0xFFFF) + (delta >> 16);
-    ip_update_check(iphdr, delta);
+    ip_update_check(ip, delta);
 }
 
 
-static void ip_update_check(struct iphdr *iphdr, __u16 delta)
+static void ip_update_check(struct iphdr *ip, __u16 delta)
 {
     __wsum sum;
-    sum = iphdr->check;
+    sum = ip->check;
     // RFC 1624 Equation 4
     //Total sum is off by 1
     //sum -= ~old_val;
@@ -197,5 +197,5 @@ static void ip_update_check(struct iphdr *iphdr, __u16 delta)
 
     sum = (sum & 0xFFFF) + (sum >> 16);
     sum = (sum & 0xFFFF) + (sum >> 16);
-    iphdr->check = sum;
+    ip->check = sum;
 }
