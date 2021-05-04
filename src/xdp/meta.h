@@ -1,6 +1,8 @@
 #ifndef __XDP_META_H__
 #define __XDP_META_H__
 
+#include <linux/types.h>
+
 struct xdp_md;
 
 __u64 meta_push(struct xdp_md *ctx, __u32 data);
