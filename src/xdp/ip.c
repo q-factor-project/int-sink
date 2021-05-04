@@ -37,11 +37,9 @@ __u32 process_ipv4(struct xdp_md *ctx)
 
     // Replace with decision function
     switch (ip.ip_hdr.protocol) {
-    /*
     case 0x06: // TCP Next Header
         result = process_tcp(ctx);
         break;
-    */
     case 0x11: // UDP Next Header
         result = process_udp(ctx);
         break;
