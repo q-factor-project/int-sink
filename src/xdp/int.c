@@ -64,8 +64,8 @@ __u32 process_int(struct xdp_md *ctx)
 
     union meta_info info;
 
-    info.data.csum_delta = int_checksum(int_data);
-    info.data.size_delta = ((__u16)int_data->shim.len) << 2;
+    info.data.csum_delta = ~int_checksum(int_data);
+    info.data.size_delta = -(((__u16)int_data->shim.len) << 2);
     
     result = meta_push(ctx, info.combined_data);
 
