@@ -5,7 +5,6 @@
 #include <bpf/bpf_helpers.h>
 
 #include "helpers/endian.h"
-#include "insert.h"
 #include "meta.h"
 
 #define DSCP_INT 0x17
@@ -131,7 +130,7 @@ static __u32 packet_push_tcp(struct xdp_md *ctx, struct raw_tcp *buffer)
 
 static void tcp_update_length(struct tcphdr *tcp, __u16 delta)
 {
-    ip_update_check(tcp, delta);// Update for change in ip pseudo header
+    tcp_update_check(tcp, delta);// Update for change in ip pseudo header
 }
 
 static void tcp_update_check(struct tcphdr *tcp, __u16 delta)

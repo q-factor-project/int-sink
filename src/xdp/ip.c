@@ -5,7 +5,6 @@
 #include <bpf/bpf_helpers.h>
 
 #include "helpers/endian.h"
-#include "insert.h"
 #include "meta.h"
 
 #define DSCP_INT 0x17
