@@ -42,7 +42,6 @@ BPFCFLAGS += -Wno-compare-distinct-pointer-types
 BPFCFLAGS += -Werror
 BPFCFLAGS += -O2
 BPFCFLAGS += -g
-BPFCFLAGS += -S
 BPFCFLAGS += -c
 
 BPF_ARCH := -target bpf
