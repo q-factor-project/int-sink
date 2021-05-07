@@ -34,6 +34,8 @@ export CC AR CFLAGS LDFLAGS LDLIBS
 
 # BPF compilation
 
+BPFTOOL = bpftool
+
 BPFCFLAGS += $(UNIVERSAL_INCLUDES)
 BPFCFLAGS += -Wall
 BPFCFLAGS += -Wno-unused-value
@@ -48,7 +50,7 @@ BPF_ARCH := -target bpf
 
 COMPILE.bpf.c = $(CC) $(BPFCFLAGS) $(BPF_ARCH)
 
-export COMPILE.bpf.c BPFCFLAGS BPF_ARCH
+export BPFTOOL COMPILE.bpf.c BPFCFLAGS BPF_ARCH
 
 # Define loader dependencies
 
@@ -65,7 +67,7 @@ LOADER_CFLAGS += $(LIB_LINKS)
 
 .SECONDARY:
 
-all: $(APP)
+all:
 
 ####################
 # Explicit Targets #
@@ -84,16 +86,13 @@ test: test.c int_remover.xdp.c ./debug/print.c ./mock/bpf.c $(INCLUDE_HEADERS)
 # Build Objects #
 #################
 
-%.skel.h: %.bpf.o 
-	bpftool gen skeleton $< > $@
-
-%.bpf.o: %.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h FORCE
+%.skel.h: $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h FORCE
 	$(MAKE) -C $(dir $@) $(notdir $@) 
 
-%.bpf.ll: %.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h FORCE
-	$(MAKE) -C $(dir $@) $(notdir $@)
+%.bpf.o: $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h FORCE
+	$(MAKE) -C $(dir $@) $(notdir $@) 
 
-%.a: $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h FORCE
+%.bpf.ll: $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h FORCE
 	$(MAKE) -C $(dir $@) $(notdir $@)
 
 #################
@@ -112,16 +111,18 @@ $(OUTPUT_DIR)/vmlinux.h: /sys/kernel/btf/vmlinux | $(OUTPUT_DIR)
 $(OUTPUT_DIR):
 	mkdir -p $@
 
-##################
-# Cleaning rules #
-##################
+###################
+# Recursive rules #
+###################
 
-SUBDIRS := helpers xdp
+SUBDIRS := xdp/
 
 phony += $(SUBDIRS)
 
-$(SUBDIRS):
+$(SUBDIRS): $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h FORCE
 	$(MAKE) -C $@ $(MAKECMDGOALS)
+
+xdp: $(OBJECT_LIBBPF)
 
 phony += clean
 
@@ -130,6 +131,10 @@ clean: $(SUBDIRS)
 	-rm -f $(APP)
 	-rm -f *.skel.h
 	-rm -f int_remover2.bpf.o
+
+phony += all
+
+all: $(SUBDIRS)
 
 phony += FORCE
 

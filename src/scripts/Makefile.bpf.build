@@ -1,0 +1,32 @@
+phony :=
+
+phony += all
+
+target-bpf := $(target-skel:.skel.h=.bpf.o)
+
+all: $(target-skel)
+
+$(target-skel): %.skel.h: %.bpf.o
+	$(BPFTOOL) gen skel $< > $@
+
+$(target-bpf): $(obj-bpf)
+	$(BPFTOOL) gen object $@ $^
+
+$(obj-bpf): %.bpf.o: %.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h
+	$(COMPILE.bpf.c) $(OUTPUT_OPTION) $<
+
+%.bpf.ll: %.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h
+	$(COMPILE.bpf.c) -emit-llvm $(OUTPUT_OPTION) $<
+
+phony += clean
+
+clean:
+	-rm -f $(target-skel)
+	-rm -f $(target-bpf)
+	-rm -f $(obj-bpf)
+
+.PHONY: $(phony)
+
+.DELETE_ON_ERROR:
+
+.SECONDARY:
