@@ -1,0 +1,23 @@
+phony :=
+
+phony += all
+
+all: $(target-exec)
+
+$(target-exec): $(obj-user)
+	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
+
+$(obj-user): %.o: %.c
+	$(COMPILE.c) $(OUTPUT_OPTION) $<
+
+phony += clean
+
+clean:
+	-rm -f $(target-exec)
+	-rm -f $(obj-user)
+
+.PHONY: $(phony)
+
+.DELETE_ON_ERROR:
+
+.SECONDARY:

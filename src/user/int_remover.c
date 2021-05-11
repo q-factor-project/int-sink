@@ -1,5 +1,5 @@
 
-#include <int_remover.skel.h>
+#include <xdp/int_remover.skel.h>
 #include <linux/if_link.h>
 #include <net/if.h>
 #include <signal.h>
@@ -7,7 +7,7 @@
 
 // Global variables
 
-struct int_remover_xdp *obj;
+struct int_remover_bpf *obj;
 int ifindex;
 __u32 xdp_flags;
 
@@ -35,6 +35,8 @@ int main(int argc, char **argv)
     int prog_fd;
     char *if_name;
     
+    fprintf(stderr, "Parsing arguments\n");
+
     if (argc != ARG_COUNT)
     {
         fprintf(stderr, "Invalid argument count\n");
@@ -50,10 +52,14 @@ int main(int argc, char **argv)
         return 1;
     }
 
+    fprintf(stderr, "Arguments parsed\n");
+
     signal(SIGINT, interrupt_handler);
     signal(SIGTERM, interrupt_handler);
 
-    obj = int_remover_xdp__open();
+    fprintf(stderr, "Openining int remover bpf\n");
+
+    obj = int_remover_bpf__open();
 
     if(!obj)
     {
@@ -62,12 +68,18 @@ int main(int argc, char **argv)
         goto CLEANUP;
     }
     
-    err = int_remover_xdp__load(obj);
+    // TODO: Attach maps
+
+    fprintf(stderr, "Loading int remover bpf\n");
+
+    err = int_remover_bpf__load(obj);
     if (err)
     {
         fprintf(stderr, "Failed to load and verify BPF skeleton\n");
         goto CLEANUP;
     }
+
+    fprintf(stderr, "Attaching int remover to %s\n", if_name);
 
     // Attach program to interface
     xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE;
@@ -80,7 +92,7 @@ int main(int argc, char **argv)
         goto CLEANUP;
     }
 
-    err = int_remover_xdp__attach(obj);
+    err = int_remover_bpf__attach(obj);
     if (err)
     {
         fprintf(stderr, "Failed to attach BPF skeleton\n");
@@ -112,7 +124,7 @@ static void cleanup()
     // Detach XDP program from interface
     bpf_set_link_xdp_fd(ifindex, -1, xdp_flags);
     // Detach XDP program
-    int_remover_xdp__detach(obj);
+    int_remover_bpf__detach(obj);
     // Destroy skeleton
-    int_remover_xdp__destroy(obj);
+    int_remover_bpf__destroy(obj);
 }

@@ -115,7 +115,7 @@ $(OUTPUT_DIR):
 # Recursive rules #
 ###################
 
-SUBDIRS := xdp/
+SUBDIRS := xdp/ user/
 
 phony += $(SUBDIRS)
 
