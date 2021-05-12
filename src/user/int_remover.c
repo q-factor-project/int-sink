@@ -121,6 +121,7 @@ static void cleanup()
     printf("Cleaning up\n");
     printf("Packets processed: %d\n", obj->bss->counter);
     printf("Packets dropped: %d\n", obj->bss->dropped);
+    printf("INT processed: %d\n", obj->bss->int_counter);
     // Detach XDP program from interface
     bpf_set_link_xdp_fd(ifindex, -1, xdp_flags);
     // Detach XDP program
