@@ -21,7 +21,7 @@ struct {
     __type(key, __u32);
     __type(value, struct raw_int);
     __uint(max_entries, 1);
-} int_buffer SEC("maps"); // Can replace with just the output buffer
+} int_buffer SEC(".maps"); // Can replace with just the output buffer
 
 
 __u32 process_int(struct xdp_md *ctx)
@@ -43,6 +43,9 @@ __u32 process_int(struct xdp_md *ctx)
     // Prepare buffer
 
     int_data = bpf_map_lookup_elem(&int_buffer, &key);
+
+    if(!int_data)
+        return FATAL_ERR;
 
     result = packet_pop_int(ctx, int_data);
 

@@ -4,6 +4,7 @@
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
 
+#include "helpers/memory.h"
 #include "helpers/endian.h"
 #include "meta.h"
 
@@ -22,6 +23,7 @@ static void tcp_update_check(struct tcphdr *tcp, __u16 delta);
 __u32 process_tcp(struct xdp_md *ctx)
 {
     struct raw_tcp tcp;
+    memset(&tcp, 0, sizeof(tcp));
     __u32 result = packet_pop_tcp(ctx, &tcp);
 
     if (result)

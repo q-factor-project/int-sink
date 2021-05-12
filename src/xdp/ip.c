@@ -4,6 +4,7 @@
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
 
+#include "helpers/memory.h"
 #include "helpers/endian.h"
 #include "meta.h"
 
@@ -22,6 +23,7 @@ static void ip_update_tos(struct iphdr *ip, __u8 new_tos);
 __u32 process_ipv4(struct xdp_md *ctx)
 {
     struct raw_ip ip;
+    memset(&ip, 0, sizeof(ip));
     __u32 result = packet_pop_ip(ctx, &ip);
 
     if (result)
