@@ -18,10 +18,10 @@ $(obj-bpf): %.bpf.o: %.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h
 
 phony += clean
 
+clean-targets += $(target-skel) $(target-bpf) $(obj-bpf)
+
 clean:
-	-rm -f $(target-skel)
-	-rm -f $(target-bpf)
-	-rm -f $(obj-bpf)
+	-rm -f $(clean-targets)
 
 .PHONY: $(phony)
 

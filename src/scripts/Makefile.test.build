@@ -12,6 +12,8 @@ $(target-test-bpf): $(obj-test-bpf)
 $(obj-test-bpf): %.bpf.test.o: %.c
 	$(COMPILE.test.c) $< $(OUTPUT_OPTION)
 
+clean-targets += $(target-test-bpf) $(obj-test-bpf) $(obj-test-bpf)
+
 .PHONY: $(phony)
 
 .DELETE_ON_ERROR:

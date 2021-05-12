@@ -4,3 +4,4 @@
 *.skel.h
 /output/
 *.a
+*.d

@@ -23,7 +23,7 @@ CC = clang
 
 AR = llvm-ar
 
-CFLAGS += $(UNIVERSAL_INCLUDES)
+CFLAGS += $(UNIVERSAL_INCLUDES) -MD
 
 LDFLAGS += -L$(OUTPUT_DIR)
 LDLIBS += -l:libbpf.a
@@ -48,7 +48,7 @@ export COMPILE.test.c TEST_CFLAGS LINK.test.o
 
 BPFTOOL = bpftool
 
-BPFCFLAGS += $(UNIVERSAL_INCLUDES)
+BPFCFLAGS += $(CFLAGS)
 BPFCFLAGS += -Wall
 BPFCFLAGS += -Wno-unused-value
 BPFCFLAGS += -Wno-pointer-sign
