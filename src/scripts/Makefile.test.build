@@ -4,6 +4,13 @@ target-test-bpf := $(target-skel:.skel.h=.bpf.test.o)
 
 obj-test-bpf := $(obj-bpf:.bpf.o=.bpf.test.o) 
 
+dep-test-bpf := $(obj-test-bpf:.bpf.test.o=.bpf.test.d)
+
+$(dep-test-bpf): %.bpf.test.d: %.c
+	$(COMPILE.test.c) $< -M -MT '$(@:.d=.o) $@' > $@
+
+include $(dep-test-bpf)
+
 test: $(target-test-bpf)
 
 $(target-test-bpf): $(obj-test-bpf)
@@ -12,7 +19,7 @@ $(target-test-bpf): $(obj-test-bpf)
 $(obj-test-bpf): %.bpf.test.o: %.c
 	$(COMPILE.test.c) $< $(OUTPUT_OPTION)
 
-clean-targets += $(target-test-bpf) $(obj-test-bpf) $(obj-test-bpf)
+clean-targets += $(target-test-bpf) $(obj-test-bpf) $(dep-test-bpf)
 
 .PHONY: $(phony)
 

@@ -1,5 +1,12 @@
 phony += all
 
+dep-user := $(obj-user:.o=.d)
+
+$(dep-user): %.d: %.c
+	$(COMPILE.test.c) $< -M -MT '$(@:.d=.o) $@' > $@
+
+include $(dep-bpf)
+
 all: $(target-exec)
 
 $(target-exec): $(obj-user) $(OBJECT_LIBBPF)
@@ -10,9 +17,10 @@ $(obj-user): %.o: %.c $(OBJECT_LIBBPF)
 
 phony += clean
 
+clean-targets += $(target-exec) $(obj-user) $(dep-user)
+
 clean:
-	-rm -f $(target-exec)
-	-rm -f $(obj-user)
+	-rm -f $(clean-targets)
 
 .PHONY: $(phony)
 

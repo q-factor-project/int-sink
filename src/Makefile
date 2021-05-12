@@ -23,7 +23,7 @@ CC = clang
 
 AR = llvm-ar
 
-CFLAGS += $(UNIVERSAL_INCLUDES) -MD
+CFLAGS += $(UNIVERSAL_INCLUDES)
 
 LDFLAGS += -L$(OUTPUT_DIR)
 LDLIBS += -l:libbpf.a
@@ -66,7 +66,7 @@ export BPFTOOL COMPILE.bpf.c BPFCFLAGS BPF_ARCH
 
 # Define loader dependencies
 
-LOADER_CFLAGS += $(UNIVERSAL_INCLUDES)
+LOADER_CFLAGS += $(CFLAGS)
 
 LIB_LINKS += -L$(OUTPUT_DIR)
 LIB_LINKS += -l:libbpf.a

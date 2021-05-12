@@ -1,5 +1,12 @@
 phony += all
 
+dep-bpf := $(obj-bpf:.bpf.o=.bpf.d)
+
+$(dep-bpf): %.bpf.d: %.c
+	$(COMPILE.test.c) $< -M -MT '$(@:.d=.o) $@' > $@
+
+include $(dep-bpf)
+
 target-bpf := $(target-skel:.skel.h=.bpf.o)
 
 all: $(target-skel)
@@ -18,7 +25,7 @@ $(obj-bpf): %.bpf.o: %.c $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h
 
 phony += clean
 
-clean-targets += $(target-skel) $(target-bpf) $(obj-bpf)
+clean-targets += $(target-skel) $(target-bpf) $(obj-bpf) $(dep-bpf)
 
 clean:
 	-rm -f $(clean-targets)
