@@ -32,6 +32,18 @@ LDLIBS += -lz
 
 export CC AR CFLAGS LDFLAGS LDLIBS
 
+# C Test compilation
+
+TEST_CFLAGS := -I$(SRC_DIR)/mock/
+
+TEST_CFLAGS += $(CFLAGS)
+
+COMPILE.test.c = $(CC) $(TEST_CFLAGS) $(TARGET_ARCH) -c
+
+LINK.test.o = $(CC) $(LDFLAGS) $(TARGET_ARCH)
+
+export COMPILE.test.c TEST_CFLAGS LINK.test.o
+
 # BPF compilation
 
 BPFTOOL = bpftool
@@ -48,7 +60,7 @@ BPFCFLAGS += -c
 
 BPF_ARCH := -target bpf
 
-COMPILE.bpf.c = $(CC) $(BPFCFLAGS) $(BPF_ARCH)
+COMPILE.bpf.c = $(CC) $(BPFCFLAGS) $(BPF_ARCH) -c
 
 export BPFTOOL COMPILE.bpf.c BPFCFLAGS BPF_ARCH
 
@@ -135,6 +147,8 @@ clean: $(SUBDIRS)
 phony += all
 
 all: $(SUBDIRS)
+
+test: $(SUBDIRS)
 
 phony += FORCE
 

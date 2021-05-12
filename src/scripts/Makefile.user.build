@@ -1,13 +1,11 @@
-phony :=
-
 phony += all
 
 all: $(target-exec)
 
-$(target-exec): $(obj-user)
+$(target-exec): $(obj-user) $(OBJECT_LIBBPF)
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
-$(obj-user): %.o: %.c
+$(obj-user): %.o: %.c $(OBJECT_LIBBPF)
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 
 phony += clean

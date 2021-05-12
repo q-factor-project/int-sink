@@ -3,3 +3,5 @@ obj-bpf := driver.bpf.o int.bpf.o tcp.bpf.o udp.bpf.o ip.bpf.o ethernet.bpf.o me
 target-skel := int_remover.skel.h
 
 include $(SRC_DIR)/scripts/Makefile.bpf.build
+
+include $(SRC_DIR)/scripts/Makefile.test.build

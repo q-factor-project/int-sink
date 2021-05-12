@@ -1,5 +1,3 @@
-phony :=
-
 phony += all
 
 target-bpf := $(target-skel:.skel.h=.bpf.o)

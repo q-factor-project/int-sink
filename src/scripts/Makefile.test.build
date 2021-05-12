@@ -1,0 +1,19 @@
+phony += test
+
+target-test-bpf := $(target-skel:.skel.h=.bpf.test.o)
+
+obj-test-bpf := $(obj-bpf:.bpf.o=.bpf.test.o) 
+
+test: $(target-test-bpf)
+
+$(target-test-bpf): $(obj-test-bpf)
+	$(LINK.test.o) $^ $(LOADLIBES) $(LDLIBS) $(OUTPUT_OPTION)
+
+$(obj-test-bpf): %.bpf.test.o: %.c
+	$(COMPILE.test.c) $< $(OUTPUT_OPTION)
+
+.PHONY: $(phony)
+
+.DELETE_ON_ERROR:
+
+.SECONDARY:
