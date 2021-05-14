@@ -5,7 +5,7 @@ dep-bpf := $(obj-bpf:.bpf.o=.bpf.d)
 $(dep-bpf): %.bpf.d: %.c
 	$(COMPILE.test.c) $< -M -MT '$(@:.d=.o) $@' > $@
 
-include $(dep-bpf)
+-include $(dep-bpf)
 
 target-bpf := $(target-skel:.skel.h=.bpf.o)
 

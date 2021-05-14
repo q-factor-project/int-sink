@@ -5,7 +5,7 @@ dep-user := $(obj-user:.o=.d)
 $(dep-user): %.d: %.c
 	$(COMPILE.test.c) $< -M -MT '$(@:.d=.o) $@' > $@
 
-include $(dep-bpf)
+-include $(dep-bpf)
 
 all: $(target-exec)
 

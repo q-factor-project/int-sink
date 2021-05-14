@@ -9,7 +9,7 @@ dep-test-bpf := $(obj-test-bpf:.bpf.test.o=.bpf.test.d)
 $(dep-test-bpf): %.bpf.test.d: %.c
 	$(COMPILE.test.c) $< -M -MT '$(@:.d=.o) $@' > $@
 
-include $(dep-test-bpf)
+-include $(dep-test-bpf)
 
 test: $(target-test-bpf)
 
