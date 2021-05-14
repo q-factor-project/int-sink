@@ -86,7 +86,7 @@ static __u32 packet_pop_tcp(struct xdp_md *ctx, struct raw_tcp *buffer)
     #pragma unroll
     for(int i = 0; i < sizeof(*buffer) / 4; i++)
     {   
-        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1)) 
+        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1) || i == size) 
         {
             break;
         }
@@ -120,7 +120,7 @@ static __u32 packet_push_tcp(struct xdp_md *ctx, struct raw_tcp *buffer)
     #pragma unroll
     for(int i = 0; i < sizeof(*buffer) / 4; i++)
     {   
-        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1)) 
+        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1) || i == size) 
         {
             break;
         }
