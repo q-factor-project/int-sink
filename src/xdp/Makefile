@@ -4,4 +4,6 @@ target-skel := int_remover.skel.h
 
 include $(SRC_DIR)/scripts/Makefile.bpf.build
 
-include $(SRC_DIR)/scripts/Makefile.test.build
+test: all
+
+# include $(SRC_DIR)/scripts/Makefile.test.build

@@ -23,6 +23,12 @@ struct {
     __uint(max_entries, 1);
 } int_buffer SEC(".maps"); // Can replace with just the output buffer
 
+SEC("xdp")
+int test_int(struct xdp_md *ctx)
+{
+    meta_push(ctx, DSCP_INT << 2);
+    return process_int(ctx);
+}
 
 __u32 process_int(struct xdp_md *ctx)
 {
@@ -80,33 +86,33 @@ __u32 process_int(struct xdp_md *ctx)
 
 static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer)
 {
+    __u32 *buf = (void*)buffer;
     void *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
 
     // Parsing
 
     struct int14_shim_t *shim = pkt;
+    __u32 *pos = pkt;
 
     if (shim + 1 > end)
         return NONFATAL_ERR;
     
     __u32 size = shim->len;
-    size <<= 2;
 
-    if (size < sizeof(struct int14_shim_t) + sizeof(struct telemetry_report_v10_t))
+    if ((size * sizeof(*buf)) < sizeof(struct int14_shim_t))
         return NONFATAL_ERR;
 
-    if ( ( pkt + size ) > end)
+    if ( ( pos + size ) > end)
         return NONFATAL_ERR;
 
     // End parsing
 
-    // Copy from packet to 
-    __u32 *buf = (void*)buffer, *pos = pkt;
+    // Copy from packet to buffer
     #pragma unroll
-    for(int i = 0; i < sizeof(*buffer) / 4; i++)
+    for(int i = 0; i < sizeof(*buffer) / sizeof(*buf); i++)
     {   
-        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1) || i == size) 
+        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1) || i >= size )
         {
             break;
         }
@@ -114,7 +120,7 @@ static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer)
     }
 
     // Shrinking packet
-    if (bpf_xdp_adjust_head(ctx, size))
+    if (bpf_xdp_adjust_head(ctx, size * sizeof(*buf)))
         return FATAL_ERR;
 
     return NO_ERR;
@@ -123,16 +129,15 @@ static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer)
 static __u16 int_checksum(struct raw_int *buffer)
 {
     __u32 size = buffer->shim.len;
-    size <<= 2;
 
     __u64 sum = 0;
 
     __u32 *buf = (void*)buffer;
 
     #pragma unroll
-    for(int i = 0; i < sizeof(*buffer) / 4; i++)
+    for(int i = 0; i < sizeof(*buffer) / sizeof(*buf); i++)
     {   
-        if ((buf + i + 1) > (buffer + 1) || i == size) 
+        if ((buf + i + 1) > (buffer + 1) || i >= size)
         {
             break;
         }

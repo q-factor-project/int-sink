@@ -72,7 +72,7 @@ static __u32 packet_pop_udp(struct xdp_md *ctx, struct udphdr *udp)
     memcpy(udp, pkt, sizeof(*udp)); 
 
     // Shrink packet
-    if (bpf_xdp_adjust_head(ctx, sizeof(udp)))
+    if (bpf_xdp_adjust_head(ctx, sizeof(*udp)))
         return FATAL_ERR;
 
     return NO_ERR;
@@ -84,7 +84,7 @@ static __u32 packet_pop_udp(struct xdp_md *ctx, struct udphdr *udp)
 static __u32 packet_push_udp(struct xdp_md *ctx, struct udphdr *udp)
 {
     // Expand packet
-    if (bpf_xdp_adjust_head(ctx, (int)(-sizeof(udp))))
+    if (bpf_xdp_adjust_head(ctx, -(int)(sizeof(*udp))))
         return FATAL_ERR;
 
 

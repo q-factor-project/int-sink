@@ -81,6 +81,10 @@ LOADER_CFLAGS += $(LIB_LINKS)
 
 all:
 
+test:
+
+clean:
+
 ####################
 # Explicit Targets #
 ####################
@@ -91,8 +95,8 @@ $(APP): %: %.c $(OUTPUT_DIR)/%.skel.h $(OBJECT_LIBBPF) | $(OUTPUT_DIR)
 int_remover2.bpf.o: xdp/int_remover.bpf.o helpers/bpf.a
 	$(CC) $(OUTPUT_OPTION) $^
 
-test: test.c int_remover.xdp.c ./debug/print.c ./mock/bpf.c $(INCLUDE_HEADERS)
-	gcc -o $@ -D __DEBUG__ test.c int_remover.xdp.c ./debug/print.c ./mock/bpf.c
+# test: test.c int_remover.xdp.c ./debug/print.c ./mock/bpf.c $(INCLUDE_HEADERS)
+# 	gcc -o $@ -D __DEBUG__ test.c int_remover.xdp.c ./debug/print.c ./mock/bpf.c
 
 #################
 # Build Objects #
@@ -123,18 +127,30 @@ $(OUTPUT_DIR)/vmlinux.h: /sys/kernel/btf/vmlinux | $(OUTPUT_DIR)
 $(OUTPUT_DIR):
 	mkdir -p $@
 
-###################
-# Recursive rules #
-###################
+################
+# subdir rules #
+################
 
 SUBDIRS := xdp/ user/
 
-phony += $(SUBDIRS)
-
-$(SUBDIRS): $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h FORCE
+$(SUBDIRS): FORCE
 	$(MAKE) -C $@ $(MAKECMDGOALS)
 
-xdp: $(OBJECT_LIBBPF)
+xdp/: $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h
+
+user/: xdp/ $(OBJECT_LIBBPF) $(OUTPUT_DIR)/vmlinux.h
+
+#################
+# Primary Rules #
+#################
+
+phony += all
+
+all: $(SUBDIRS)
+
+phony += test
+
+test: user/
 
 phony += clean
 
@@ -143,12 +159,6 @@ clean: $(SUBDIRS)
 	-rm -f $(APP)
 	-rm -f *.skel.h
 	-rm -f int_remover2.bpf.o
-
-phony += all
-
-all: $(SUBDIRS)
-
-test: $(SUBDIRS)
 
 phony += FORCE
 

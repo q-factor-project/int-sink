@@ -60,33 +60,32 @@ __u32 process_tcp(struct xdp_md *ctx)
 
 static __u32 packet_pop_tcp(struct xdp_md *ctx, struct raw_tcp *buffer)
 {
+    __u32 *buf = (void*)buffer;
     void *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
 
     // Parsing
-
+    __u32 *pos = pkt;
     struct tcphdr *tcp = pkt;
 
     if (tcp + 1 > end)
         return NONFATAL_ERR;
     
     __u32 size = tcp->doff;
-    size <<= 2;
 
-    if (size < sizeof(*tcp))
+    if ((size * sizeof(*buf)) < sizeof(*tcp))
         return NONFATAL_ERR;
 
-    if ( ( pkt + size ) > end)
+    if ( ( pos + size ) > end)
         return NONFATAL_ERR;
 
     // End parsing
 
     // Copy from packet to buffer
-    __u32 *buf = (void*)buffer, *pos = pkt;
     #pragma unroll
     for(int i = 0; i < sizeof(*buffer) / 4; i++)
     {   
-        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1) || i == size) 
+        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1) || i >= size)
         {
             break;
         }
@@ -94,7 +93,7 @@ static __u32 packet_pop_tcp(struct xdp_md *ctx, struct raw_tcp *buffer)
     }
 
     // Shrinking packet
-    if (bpf_xdp_adjust_head(ctx, size))
+    if (bpf_xdp_adjust_head(ctx, size * sizeof(*buf)))
         return FATAL_ERR;
 
     return NO_ERR;
@@ -102,25 +101,26 @@ static __u32 packet_pop_tcp(struct xdp_md *ctx, struct raw_tcp *buffer)
 
 static __u32 packet_push_tcp(struct xdp_md *ctx, struct raw_tcp *buffer)
 {
+    __u32 *buf = (void*)buffer;
     __u32 size = buffer->tcp_hdr.doff;
-    size <<= 2;
     // Expand packet
-    if (bpf_xdp_adjust_head(ctx, -size))
+    if (bpf_xdp_adjust_head(ctx, -(size * sizeof(*buf))))
         return FATAL_ERR;
 
     void *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
 
+    __u32 *pos = pkt;
+
     // Safety Check
-    if ( ( pkt + size ) > end)
+    if ( ( pos + size ) > end)
         return FATAL_ERR;
 
     // Copy from buffer to packet
-    __u32 *buf = (void*)buffer, *pos = pkt;
     #pragma unroll
     for(int i = 0; i < sizeof(*buffer) / 4; i++)
     {   
-        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1) || i == size) 
+        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1) || i >= size)
         {
             break;
         }

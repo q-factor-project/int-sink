@@ -89,20 +89,20 @@ __u32 process_ipv4(struct xdp_md *ctx)
 
 static __u32 packet_pop_ip(struct xdp_md *ctx, struct raw_ip *buffer)
 {
+    __u32 *buf = (void*)buffer;
     void *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
 
     // Parsing
-
     struct iphdr *ip = pkt;
+    __u32 *pos = pkt;
 
     if (ip + 1 > end)
         return NONFATAL_ERR;
     
     __u32 size = ip->ihl;
-    size <<= 2;
 
-    if (size < sizeof(*ip))
+    if ((size * sizeof(*buf)) < sizeof(*ip))
         return NONFATAL_ERR;
 
     if ( ( pkt + size ) > end)
@@ -111,11 +111,10 @@ static __u32 packet_pop_ip(struct xdp_md *ctx, struct raw_ip *buffer)
     // End parsing
 
     // Copy from packet to buffer
-    __u32 *buf = (void*)buffer, *pos = pkt;
     #pragma unroll
-    for(int i = 0; i < sizeof(*buffer) / 4; i++)
+    for(int i = 0; i < sizeof(*buffer) / sizeof(*buf); i++)
     {   
-        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1) || i == size) 
+        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1) || i >= size)
         {
             break;
         }
@@ -123,7 +122,7 @@ static __u32 packet_pop_ip(struct xdp_md *ctx, struct raw_ip *buffer)
     }
 
     // Shrinking packet
-    if (bpf_xdp_adjust_head(ctx, size))
+    if (bpf_xdp_adjust_head(ctx, size * sizeof(*buf)))
         return FATAL_ERR;
 
     return NO_ERR;
@@ -131,25 +130,26 @@ static __u32 packet_pop_ip(struct xdp_md *ctx, struct raw_ip *buffer)
 
 static __u32 packet_push_ip(struct xdp_md *ctx, struct raw_ip *buffer)
 {
+    __u32 *buf = (void*)buffer;
     __u32 size = buffer->ip_hdr.ihl;
-    size <<= 2;
     // Expand packet
-    if (bpf_xdp_adjust_head(ctx, -size))
+    if (bpf_xdp_adjust_head(ctx, -(size * sizeof(*buf))))
         return FATAL_ERR;
 
     void *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
 
+    __u32 *pos = pkt;
+
     // Safety Check
-    if ( ( pkt + size ) > end)
+    if ( ( pos + size ) > end)
         return FATAL_ERR;
 
     // Copy from buffer to packet
-    __u32 *buf = (void*)buffer, *pos = pkt;
     #pragma unroll
-    for(int i = 0; i < sizeof(*buffer) / 4; i++)
+    for(int i = 0; i < sizeof(*buffer) / sizeof(*buf); i++)
     {   
-        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1) || i == size) 
+        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1) || i >= size)
         {
             break;
         }

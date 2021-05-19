@@ -58,7 +58,7 @@ static __u32 packet_pop_eth(struct xdp_md *ctx, struct ethhdr *eth)
     memcpy(eth, pkt, sizeof(*eth)); 
 
     // Shrink packet
-    if (bpf_xdp_adjust_head(ctx, sizeof(eth)))
+    if (bpf_xdp_adjust_head(ctx, sizeof(*eth)))
         return FATAL_ERR;
 
     return NO_ERR;
@@ -67,7 +67,7 @@ static __u32 packet_pop_eth(struct xdp_md *ctx, struct ethhdr *eth)
 static __u32 packet_push_eth(struct xdp_md *ctx, struct ethhdr *eth)
 {
     // Expand packet
-    if (bpf_xdp_adjust_head(ctx, (int)(-sizeof(eth))))
+    if (bpf_xdp_adjust_head(ctx, -(int)(sizeof(*eth))))
         return FATAL_ERR;
 
 
