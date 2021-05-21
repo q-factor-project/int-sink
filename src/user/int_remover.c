@@ -83,7 +83,7 @@ int main(int argc, char **argv)
 
     // Attach program to interface
     xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST | XDP_FLAGS_DRV_MODE;
-    prog_fd = bpf_program__fd(obj->progs.remove_int);
+    prog_fd = bpf_program__fd(obj->progs.driver);
     err = bpf_set_link_xdp_fd(ifindex, prog_fd, xdp_flags);
 
     if (err)

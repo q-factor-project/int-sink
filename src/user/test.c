@@ -49,7 +49,7 @@ int main(int argc, char** argv)
     run_test(prog_fd, int_payload_packet, sizeof(int_payload_packet), 100);
     fprintf(stdout, "================================================================================\n");
 
-    prog_fd = bpf_program__fd(obj->progs.remove_int);
+    prog_fd = bpf_program__fd(obj->progs.driver);
     if (prog_fd < 0)
     {
         fprintf(stderr, "Failed to retrieve program file descriptor.\n");

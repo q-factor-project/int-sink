@@ -6,6 +6,7 @@
 
 #include "helpers/memory.h"
 #include "helpers/endian.h"
+
 #include "meta.h"
 
 #define DSCP_INT 0x17
@@ -29,13 +30,6 @@ __u32 process_ipv4(struct xdp_md *ctx)
     if (result)
         return result;
 
-    // Push DSCP info to stack
-
-    result = meta_push(ctx, ip.ip_hdr.tos);
-
-    if (result) // If fail, reconstruct packet
-        return packet_push_ip(ctx, &ip);
-
     // Replace with decision function
     switch (ip.ip_hdr.protocol) {
     case 0x06: // TCP Next Header
@@ -49,31 +43,9 @@ __u32 process_ipv4(struct xdp_md *ctx)
         break;
     }
 
-    union meta_info info;
-    __u8 tos;
-
     switch(result)
     {
     case NO_ERR:
-        // NO ERR Implies info has been pushed to meta stack properly
-        result = meta_pop(ctx);
-
-        info.combined_data = result;
-
-        ip_update_length(&(ip.ip_hdr), info.data.size_delta);
-
-        // Pop DSCP info from stack
-
-        result = meta_pop(ctx);
-        result >>= 2;
-        result <<= 2;
-
-        tos = ip.ip_hdr.tos;
-        tos &= 0b11;
-        tos |= result;
-
-        ip_update_tos(&(ip.ip_hdr), tos);
-
         return packet_push_ip(ctx, &ip);
         break;
     case NONFATAL_ERR:
@@ -89,6 +61,9 @@ __u32 process_ipv4(struct xdp_md *ctx)
 
 static __u32 packet_pop_ip(struct xdp_md *ctx, struct raw_ip *buffer)
 {
+    struct meta_info *meta = meta_get(ctx);
+    if (!meta)
+        return FATAL_ERR;
     __u32 *buf = (void*)buffer;
     void *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
@@ -121,6 +96,11 @@ static __u32 packet_pop_ip(struct xdp_md *ctx, struct raw_ip *buffer)
         buf[i] = pos[i];
     }
 
+    // Update meta while still valid
+    __u8 tos = buffer->ip_hdr.tos;
+    ip_update_tos(&(buffer->ip_hdr), meta->ip_tos);
+    meta->ip_tos = tos;
+
     // Shrinking packet
     if (bpf_xdp_adjust_head(ctx, size * sizeof(*buf)))
         return FATAL_ERR;
@@ -135,6 +115,16 @@ static __u32 packet_push_ip(struct xdp_md *ctx, struct raw_ip *buffer)
     // Expand packet
     if (bpf_xdp_adjust_head(ctx, -(size * sizeof(*buf))))
         return FATAL_ERR;
+
+    struct meta_info *meta = meta_get(ctx);
+    if (!meta)
+        return FATAL_ERR;
+
+    // Update from meta
+    ip_update_length(&(buffer->ip_hdr), meta->size_delta);
+    __u8 tos = buffer->ip_hdr.tos;
+    ip_update_tos(&(buffer->ip_hdr), meta->ip_tos);
+    meta->ip_tos = tos;
 
     void *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
@@ -170,7 +160,7 @@ static void ip_update_length(struct iphdr *ip, __u16 delta)
 
 static void ip_update_tos(struct iphdr *ip, __u8 new_tos)
 {
-    __u16 old = ntohs(((__u16*)ip)[0]);
+    __u32 old = ntohs(((__u16*)ip)[0]);
     ip->tos = new_tos;
     __u32 delta = ntohs(((__u16*)ip)[0]) - old;
     delta = (delta & 0xFFFF) + (delta >> 16);

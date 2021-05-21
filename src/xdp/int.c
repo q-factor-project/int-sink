@@ -4,8 +4,9 @@
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
 
-#include "meta.h"
 #include "helpers/endian.h"
+
+#include "meta.h"
 
 struct raw_int {
     struct int14_shim_t shim;
@@ -23,28 +24,12 @@ struct {
     __uint(max_entries, 1);
 } int_buffer SEC(".maps"); // Can replace with just the output buffer
 
-SEC("xdp")
-int test_int(struct xdp_md *ctx)
-{
-    meta_push(ctx, DSCP_INT << 2);
-    return process_int(ctx);
-}
-
 __u32 process_int(struct xdp_md *ctx)
 {
     struct raw_int *int_data;
     __u32 result;
 
     __u32 key = 0;
-
-    // Check DSCP/TOS from IP header
-
-    result = meta_pop(ctx);
-
-    result >>= 2;
-
-    if ((result & DSCP_INT) ^ DSCP_INT)
-        return NONFATAL_ERR;
 
     // Prepare buffer
 
@@ -58,34 +43,21 @@ __u32 process_int(struct xdp_md *ctx)
     if (result)
         return result;
 
-    // Successfully copied to buffer
-
-    // 3 Values need to be sent back up
-    // DSCP - almost completely unimportant
-
-    result = meta_push(ctx, int_data->shim.DSCP << 2);
-
-    if (result)
-        return FATAL_ERR;
-
-    // Size delta - VERY IMPORTANT
-    // CSUM delta - VERY IMPORTANT
-
-    union meta_info info;
-
-    info.data.csum_delta = ~int_checksum(int_data);
-    info.data.size_delta = -(((__u16)int_data->shim.len) << 2);
-    
-    result = meta_push(ctx, info.combined_data);
-
-    if (result)
-        return FATAL_ERR;
-
     return NO_ERR;
 }
 
 static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer)
 {
+    struct meta_info *meta = meta_get(ctx);
+    if (!meta)
+        return FATAL_ERR;
+
+    // Check DSCP/TOS from IP header
+
+    int ip_dscp = meta->ip_tos >> 2;
+    if ((ip_dscp & DSCP_INT) ^ DSCP_INT)
+        return NONFATAL_ERR;
+
     __u32 *buf = (void*)buffer;
     void *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
@@ -118,6 +90,15 @@ static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer)
         }
         buf[i] = pos[i];
     }
+
+    // Update IP tos, size delta and csum delta
+    meta->ip_tos = (buffer->shim.DSCP << 2) | (meta->ip_tos & 0b11);
+
+    __u32 csum_delta = meta->csum_delta;
+    csum_delta += ~int_checksum(buffer);
+    meta->csum_delta = (csum_delta & 0xFFFF) + (csum_delta >> 16); // Only single fold required
+
+    meta->size_delta -= ((__u16)buffer->shim.len) << 2;
 
     // Shrinking packet
     if (bpf_xdp_adjust_head(ctx, size * sizeof(*buf)))

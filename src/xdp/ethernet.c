@@ -8,6 +8,8 @@
 #include "helpers/endian.h"
 #include "helpers/memory.h"
 
+#include "meta.h"
+
 static __u32 packet_pop_eth(struct xdp_md *ctx, struct ethhdr *eth);
 static __u32 packet_push_eth(struct xdp_md *ctx, struct ethhdr *eth);
 
@@ -44,12 +46,16 @@ __u32 process_ether(struct xdp_md *ctx)
 
 static __u32 packet_pop_eth(struct xdp_md *ctx, struct ethhdr *eth)
 {
-    void *pkt = (void*)(long)ctx->data;
+    struct meta_info *meta = meta_get(ctx);
+    if (!meta)
+        return FATAL_ERR;
+
+    struct ethhdr *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
 
     // Parsing
 
-    if ( ( pkt + sizeof(*eth) ) > end)
+    if ( ( pkt + 1 ) > end)
         return NONFATAL_ERR;
 
     // End parsing
@@ -60,6 +66,7 @@ static __u32 packet_pop_eth(struct xdp_md *ctx, struct ethhdr *eth)
     // Shrink packet
     if (bpf_xdp_adjust_head(ctx, sizeof(*eth)))
         return FATAL_ERR;
+    // meta->offset += sizeof(*eth);
 
     return NO_ERR;
 }
@@ -69,13 +76,17 @@ static __u32 packet_push_eth(struct xdp_md *ctx, struct ethhdr *eth)
     // Expand packet
     if (bpf_xdp_adjust_head(ctx, -(int)(sizeof(*eth))))
         return FATAL_ERR;
+    struct meta_info *meta = meta_get(ctx);
+    if (!meta)
+        return FATAL_ERR;
 
+    // meta->offset -= sizeof(*eth);
 
-    void *pkt = (void*)(long)ctx->data;
+    struct ethhdr *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
 
     // Safety check
-    if ( ( pkt + sizeof(*eth) ) > end)
+    if ( ( pkt + 1 ) > end)
         return FATAL_ERR;
     
     // Copy from buffer to packet

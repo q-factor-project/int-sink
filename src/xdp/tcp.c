@@ -6,6 +6,7 @@
 
 #include "helpers/memory.h"
 #include "helpers/endian.h"
+
 #include "meta.h"
 
 #define DSCP_INT 0x17
@@ -31,20 +32,8 @@ __u32 process_tcp(struct xdp_md *ctx)
 
     result = process_int(ctx);
 
-    __u64 long_result;
-    union meta_info info;
-
     switch(result) {
     case NO_ERR:
-        long_result = meta_peek(ctx);
-
-        info.combined_data = long_result;
-
-        if (long_result >> 32 == 0) //If meta valid, adjust header
-        {
-            tcp_update_check(&(tcp.tcp_hdr),  info.data.csum_delta);
-            tcp_update_length(&(tcp.tcp_hdr), info.data.size_delta);
-        }
         return packet_push_tcp(ctx, &tcp);
         break;
     case NONFATAL_ERR:
@@ -60,6 +49,9 @@ __u32 process_tcp(struct xdp_md *ctx)
 
 static __u32 packet_pop_tcp(struct xdp_md *ctx, struct raw_tcp *buffer)
 {
+    struct meta_info *meta = meta_get(ctx);
+    if (!meta)
+        return FATAL_ERR;
     __u32 *buf = (void*)buffer;
     void *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
@@ -107,6 +99,14 @@ static __u32 packet_push_tcp(struct xdp_md *ctx, struct raw_tcp *buffer)
     if (bpf_xdp_adjust_head(ctx, -(size * sizeof(*buf))))
         return FATAL_ERR;
 
+    struct meta_info *meta = meta_get(ctx);
+    if (!meta)
+        return FATAL_ERR;
+
+    // Update from meta
+    tcp_update_check(&(buffer->tcp_hdr),  meta->csum_delta);
+    tcp_update_length(&(buffer->tcp_hdr), meta->size_delta);
+
     void *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
 
@@ -139,19 +139,7 @@ static void tcp_update_check(struct tcphdr *tcp, __u16 delta)
 {
     __wsum sum;
     sum = tcp->check;
-    // RFC 1624 Equation 4
-    //Total sum is off by 1
-    //sum -= ~old_val;
-    //sum -= new_val;
-
-    //This works
-    //sum +=htons(-delta);
-
-    // Why does this work???
-    
     sum = htons(ntohs(sum) - delta);
-
-
     sum = (sum & 0xFFFF) + (sum >> 16);
     sum = (sum & 0xFFFF) + (sum >> 16);
     tcp->check = sum;

@@ -23,14 +23,6 @@ enum PROCESS_ERROR_NUM {
     FATAL_ERR = -2,
 };
 
-union meta_info
-{
-    struct{
-        __u16 csum_delta;
-        __u16 size_delta;
-    } data;
-    __u32 combined_data;
-};
 
 
 #endif
