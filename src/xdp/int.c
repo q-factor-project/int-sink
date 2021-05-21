@@ -95,7 +95,8 @@ static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer)
     meta->ip_tos = (buffer->shim.DSCP << 2) | (meta->ip_tos & 0b11);
 
     __u32 csum_delta = meta->csum_delta;
-    csum_delta += ~int_checksum(buffer);
+    csum_delta += (__u16)(~int_checksum(buffer));
+    csum_delta = (csum_delta & 0xFFFF) + (csum_delta >> 16);
     meta->csum_delta = (csum_delta & 0xFFFF) + (csum_delta >> 16); // Only single fold required
 
     meta->size_delta -= ((__u16)buffer->shim.len) << 2;

@@ -66,7 +66,6 @@ static __u32 packet_pop_eth(struct xdp_md *ctx, struct ethhdr *eth)
     // Shrink packet
     if (bpf_xdp_adjust_head(ctx, sizeof(*eth)))
         return FATAL_ERR;
-    // meta->offset += sizeof(*eth);
 
     return NO_ERR;
 }
@@ -79,8 +78,6 @@ static __u32 packet_push_eth(struct xdp_md *ctx, struct ethhdr *eth)
     struct meta_info *meta = meta_get(ctx);
     if (!meta)
         return FATAL_ERR;
-
-    // meta->offset -= sizeof(*eth);
 
     struct ethhdr *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
