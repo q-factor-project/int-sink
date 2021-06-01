@@ -1,8 +1,27 @@
-obj-user := int_remover.o
+
+# Regular Targets
+
+obj-user-exec := int_remover.o sample_processor.o
 
 target-exec := int_remover
 
+# Test Targets
+
+obj-user-test := test.o sample_processor.o
+
+target-test := test
+
+# Generic Targets
+
+obj-user := $(obj-user-exec) $(obj-user-test)
+
+targets := $(target-exec) $(target-test)
+
+# Rules
+
 phony += all
+
+all: $(target-exec)
 
 dep-user := $(obj-user:.o=.d) test.d
 
@@ -11,23 +30,19 @@ $(dep-user): %.d: %.c
 
 -include $(dep-user)
 
-all: $(target-exec)
+$(target-exec): $(obj-user-exec) $(OBJECT_LIBBPF)
 
-$(target-exec): $(obj-user) $(OBJECT_LIBBPF)
+$(target-test): $(obj-user-test) $(OBJECT_LIBBPF)
+
+$(targets): 
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
 
 $(obj-user): %.o: %.c $(OBJECT_LIBBPF)
 	$(COMPILE.c) $(OUTPUT_OPTION) $<
 
-test: test.o
-	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
-
-test.o: test.c
-	$(COMPILE.c) $(OUTPUT_OPTION) $<
-
 phony += clean
 
-clean-targets += $(target-exec) $(obj-user) $(dep-user) test.o test
+clean-targets += $(targets) $(obj-user) $(dep-user)
 
 clean:
 	-rm -f $(clean-targets)

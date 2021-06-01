@@ -24,6 +24,11 @@ struct {
     __uint(max_entries, 1);
 } int_buffer SEC(".maps"); // Can replace with just the output buffer
 
+struct {
+    __uint(type, BPF_MAP_TYPE_RINGBUF);
+    __uint(max_entries, 1 << 14);
+} int_ring_buffer SEC(".maps");
+
 __u32 process_int(struct xdp_md *ctx)
 {
     struct raw_int *int_data;
@@ -42,6 +47,10 @@ __u32 process_int(struct xdp_md *ctx)
 
     if (result)
         return result;
+
+    int size = int_data->shim.len << 2;
+
+    bpf_ringbuf_output(&int_ring_buffer, int_data, size, 0);
 
     return NO_ERR;
 }
