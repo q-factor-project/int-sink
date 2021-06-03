@@ -84,7 +84,7 @@ To execute ``./int_remover``, run the following command:
 
 .. code:: bash
 
-    ./int_remover $(IF_NAME)
+    ./int_remover -i $(IF_NAME)
 
 Where ``$(IF_NAME)`` is the name of the interface to attach the XDP program to.
 If you don't know what the name of the interfaces on your system are,
@@ -99,3 +99,9 @@ any traffic ingested by the interface will have its INT data removed,
 and the removed INT data will be printed to standard out.
 To detach the XDP program send a keyboard interrupt (``Ctrl`` + ``C``),
 to the program.
+
+For more details on execution, see the help provided with the following command.
+
+.. code:: bash
+
+    ./int_remover --help
