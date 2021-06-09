@@ -13,6 +13,8 @@ static const struct option long_options[] = {
     {"help", no_argument, NULL, 'h'},
     {"interface", required_argument, NULL, 'i'},
     {"pin", required_argument, NULL, 'p'},
+    {"Force", no_argument, NULL, 'F'},
+    {"skb", no_argument, NULL, 's'},
 };
 
 static const char usage_str[] =
@@ -32,7 +34,7 @@ static void interrupt_handler(int signum);
 
 // Global variables
 
-static int ifindex = -1;
+static int ifindex = 0;
 static __u32 xdp_flags = XDP_FLAGS_UPDATE_IF_NOEXIST;
 static struct int_remover_bpf *obj;
 static __u32 prog_id;
@@ -52,7 +54,7 @@ int main(int argc, char **argv)
 
     char *if_name;
 
-    struct ring_buffer *int_ringbuf;
+    struct ring_buffer *int_ringbuf = NULL;
     int rb_fd;
 
     int do_pin_map = 0;
@@ -88,8 +90,9 @@ int main(int argc, char **argv)
         }
     }
 
-    if (ifindex == -1) {
-        fprintf(stderr, "ERROR: Missing required option \n");
+    if (ifindex == 0) {
+        fprintf(stderr, "ERROR: Missing required option, interface\n");
+        return 1;
     }
 
     if (!(xdp_flags & XDP_FLAGS_SKB_MODE))
