@@ -7,7 +7,7 @@ target-exec := int_remover
 
 # Test Targets
 
-obj-user-test := test.o sample_processor.o
+obj-user-test := test.o
 
 target-test := test
 
