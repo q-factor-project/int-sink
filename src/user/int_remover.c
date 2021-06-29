@@ -5,6 +5,7 @@
 #include <signal.h>
 #include <unistd.h>
 #include <getopt.h>
+#include <sys/resource.h>
 #include "sample_processor.h"
 
 // Arguments + Usage
@@ -97,6 +98,14 @@ int main(int argc, char **argv)
 
     if (!(xdp_flags & XDP_FLAGS_SKB_MODE))
         xdp_flags |= XDP_FLAGS_DRV_MODE;
+
+    struct rlimit memlock_limit = { RLIM_INFINITY, RLIM_INFINITY };
+
+    err = setrlimit(RLIMIT_MEMLOCK, &memlock_limit);
+    if(err)
+    {
+        fprintf(stderr, "ERROR: Failed to set locked memory limit\n");
+    }
 
     obj = int_remover_bpf__open_and_load();
 
