@@ -9,20 +9,20 @@
 #include "meta.h"
 
 struct raw_int {
-    struct int14_shim_t shim;
-    struct telemetry_report_v10_t telemetry_report;
-    __u32 data[249];
+    struct int10_shim_t shim;
+    struct int10_meta_t meta_header;
+    __u32 data[252];
 };
 
 static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer);
 static __u16 int_checksum(struct raw_int *buffer);
 
 struct {
-	__uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
+    __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
     __type(key, __u32);
     __type(value, struct raw_int);
     __uint(max_entries, 1);
-} int_buffer SEC(".maps"); // Can replace with just the output buffer
+} int_buffer SEC(".maps"); // Can not replace with output buffer
 
 struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
@@ -73,7 +73,7 @@ static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer)
 
     // Parsing
 
-    struct int14_shim_t *shim = pkt;
+    struct int10_shim_t *shim = pkt;
     __u32 *pos = pkt;
 
     if (shim + 1 > end)
@@ -81,7 +81,7 @@ static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer)
     
     __u32 size = shim->len;
 
-    if ((size * sizeof(*buf)) < sizeof(struct int14_shim_t))
+    if ((size * sizeof(*buf)) < sizeof(struct int10_shim_t))
         return NONFATAL_ERR;
 
     if ( ( pos + size ) > end)

@@ -5,6 +5,8 @@
 
 static void interrupt_handler(int signum);
 
+int run_test(int prog_fd, unsigned char *packet, unsigned int packet_size, unsigned int repetitions);
+
 int main(int argc, char** argv)
 {
     int err = 0;
@@ -99,7 +101,7 @@ int run_test(int prog_fd, unsigned char *packet, unsigned int packet_size, unsig
 
     unsigned char packet_out[1514];
     unsigned int packet_out_size;
-    int ret_val;
+    unsigned int ret_val;
     unsigned int duration;
     bpf_prog_test_run(prog_fd, repetitions, packet, packet_size, packet_out, &packet_out_size, &ret_val, &duration);
     fprintf(stdout, "Result: %d\n", ret_val);

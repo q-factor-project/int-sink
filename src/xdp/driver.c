@@ -11,6 +11,9 @@ int dropped = 0;
 static struct meta_info * meta_create(struct xdp_md *ctx);
 static __u32 meta_delete(struct xdp_md *ctx);
 
+/*
+ * Entry point into xdp program.
+ */
 SEC("xdp")
 int driver(struct xdp_md *ctx)
 {
@@ -42,6 +45,9 @@ int driver(struct xdp_md *ctx)
     }
 }
 
+/*
+ * Test point for INT removal
+ */
 SEC("xdp")
 int test_int(struct xdp_md *ctx)
 {

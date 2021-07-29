@@ -5,6 +5,8 @@
 
 struct xdp_md;
 
+__u32 driver(struct xdp_md *ctx);
+
 __u32 process_ether(struct xdp_md *ctx);
 
 __u32 process_vlan(struct xdp_md *ctx);

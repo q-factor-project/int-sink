@@ -1,22 +1,39 @@
 # INT Remover Targets
 
 obj-bpf-int-remove := int_pop.bpf.o 
+obj-bpf-int-remove += tcp.bpf.o
+obj-bpf-int-remove += udp.bpf.o
+obj-bpf-int-remove += ip.bpf.o
+obj-bpf-int-remove += ethernet.bpf.o
+obj-bpf-int-remove += driver.bpf.o
 
 target-int-remove-skel := int_remover.skel.h
 
 # INT Inserter Targets
 
 obj-bpf-int-insert := int_push.bpf.o
+obj-bpf-int-insert += tcp.bpf.o
+obj-bpf-int-insert += udp.bpf.o
+obj-bpf-int-insert += ip.bpf.o
+obj-bpf-int-insert += ethernet.bpf.o
+obj-bpf-int-insert += driver.bpf.o
+obj-bpf-int-insert += redirect_driver.bpf.o
 
 target-int-insert-skel := int_inserter.skel.h
 
+# XDP Redirect Targets
+
+obj-bpf-redirect := redirect_driver.bpf.o
+
+target-redirect-skel := redirect.skel.h
+
 # Generic Targets
 
-obj-bpf-generic := driver.bpf.o tcp.bpf.o udp.bpf.o ip.bpf.o ethernet.bpf.o
+obj-bpf-generic := no_op.bpf.o 
 
-obj-bpf := $(obj-bpf-int-insert) $(obj-bpf-int-remove) $(obj-bpf-generic)
+obj-bpf := $(obj-bpf-redirect) $(obj-bpf-int-insert) $(obj-bpf-int-remove) $(obj-bpf-generic)
 
-target-skel := $(target-int-insert-skel) $(target-int-remove-skel)
+target-skel := $(target-redirect-skel) $(target-int-insert-skel) $(target-int-remove-skel)
 
 # Rules
 
@@ -36,6 +53,8 @@ target-bpf := $(target-skel:.skel.h=.bpf.o)
 $(target-int-remove-skel:.skel.h=.bpf.o): $(obj-bpf-int-remove) $(obj-bpf-generic)
 
 $(target-int-insert-skel:.skel.h=.bpf.o): $(obj-bpf-int-insert) $(obj-bpf-generic)
+
+$(target-redirect-skel:.skel.h=.bpf.o): $(obj-bpf-redirect) $(obj-bpf-generic)
 
 $(target-skel): %.skel.h: %.bpf.o
 	$(BPFTOOL) gen skel $< > $@

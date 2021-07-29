@@ -1,9 +1,21 @@
 
-# Regular Targets
+# INT remover Targets
 
-obj-user-exec := int_remover.o sample_processor.o
+obj-user-remover-exec := int_remover.o sample_processor.o
 
-target-exec := int_remover
+target-remover-exec := int_remover
+
+# INT Inserter Targets
+
+obj-user-inserter-exec := int_inserter.o
+
+target-inserter-exec := int_inserter
+
+# XDP Redirect Targets
+
+obj-user-redirect-exec := redirect.o
+
+target-redirect-exec := redirect
 
 # Test Targets
 
@@ -13,15 +25,15 @@ target-test := test
 
 # Generic Targets
 
-obj-user := $(obj-user-exec) $(obj-user-test)
+obj-user := $(obj-user-remover-exec) $(obj-user-inserter-exec) $(obj-user-redirect-exec) $(obj-user-test)
 
-targets := $(target-exec) $(target-test)
+targets := $(target-remover-exec) $(target-inserter-exec) $(target-redirect-exec) $(target-test)
 
 # Rules
 
 phony += all
 
-all: $(target-exec)
+all: $(targets)
 
 dep-user := $(obj-user:.o=.d) test.d
 
@@ -30,7 +42,11 @@ $(dep-user): %.d: %.c
 
 -include $(dep-user)
 
-$(target-exec): $(obj-user-exec) $(OBJECT_LIBBPF)
+$(target-remover-exec): $(obj-user-remover-exec) $(OBJECT_LIBBPF)
+
+$(target-inserter-exec): $(obj-user-inserter-exec) $(OBJECT_LIBBPF)
+
+$(target-redirect-exec): $(obj-user-redirect-exec) $(OBJECT_LIBBPF)
 
 $(target-test): $(obj-user-test) $(OBJECT_LIBBPF)
 
