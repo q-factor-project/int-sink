@@ -8,6 +8,8 @@
 #include <types/redirect_info.h>
 #include <linux/if_ether.h>
 
+int counter = 0;
+int dropped = 0;
 int failed_redirect = 0;
 
 struct {
@@ -21,8 +23,9 @@ struct {
  * Entry point into xdp program.
  */
 SEC("xdp")
-int redirect(struct xdp_md *ctx)
+int entry(struct xdp_md *ctx)
 {
+    counter++;
     __u32 result;
     __u32 key = 0;
     void * pkt;
@@ -54,5 +57,6 @@ KEEP_PACKET:
 REDIRECT_FAIL:
     failed_redirect++;
 DROP_PACKET:
+    dropped++;
     return XDP_DROP;
 }

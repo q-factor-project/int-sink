@@ -5,30 +5,15 @@
 #include <bpf/bpf_helpers.h>
 
 int int_counter = 0;
-int counter = 0;
-int dropped = 0;
 
 static struct meta_info * meta_create(struct xdp_md *ctx);
 static __u32 meta_delete(struct xdp_md *ctx);
 
-/*
- * Entry point into xdp program.
- */
-SEC("xdp")
-__u32 driver_entry(struct xdp_md *ctx)
-{
-    return driver(ctx);
-}
-
-
-
 __u32 driver(struct xdp_md *ctx)
 {
-    counter++;
     __u32 result;
     struct meta_info *meta_info = meta_create(ctx);
     if (!meta_info) {
-        dropped++;
         return XDP_DROP;
     }
     meta_info->csum_delta = 0;
@@ -47,7 +32,6 @@ __u32 driver(struct xdp_md *ctx)
         return XDP_PASS;
     case FATAL_ERR://FATAL ERROR, SHOULD DROP
     default:
-        dropped++;
         return XDP_DROP;
     }
 }

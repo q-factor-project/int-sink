@@ -6,6 +6,7 @@ obj-bpf-int-remove += udp.bpf.o
 obj-bpf-int-remove += ip.bpf.o
 obj-bpf-int-remove += ethernet.bpf.o
 obj-bpf-int-remove += driver.bpf.o
+obj-bpf-int-remove += entry.bpf.o
 
 target-int-remove-skel := int_remover.skel.h
 
@@ -17,13 +18,13 @@ obj-bpf-int-insert += udp.bpf.o
 obj-bpf-int-insert += ip.bpf.o
 obj-bpf-int-insert += ethernet.bpf.o
 obj-bpf-int-insert += driver.bpf.o
-obj-bpf-int-insert += redirect_driver.bpf.o
+obj-bpf-int-insert += redirect_entry.bpf.o
 
 target-int-insert-skel := int_inserter.skel.h
 
 # XDP Redirect Targets
 
-obj-bpf-redirect := redirect_driver.bpf.o
+obj-bpf-redirect := redirect_entry.bpf.o
 
 target-redirect-skel := redirect.skel.h
 

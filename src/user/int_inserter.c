@@ -128,7 +128,7 @@ int main(int argc, char **argv)
 
     obj->bss->redirect_ifindex = ofindex;
 
-    prog_fd = bpf_program__fd(obj->progs.redirect);
+    prog_fd = bpf_program__fd(obj->progs.entry);
 
     if(!prog_fd)
     {
