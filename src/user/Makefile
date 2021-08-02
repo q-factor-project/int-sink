@@ -5,11 +5,23 @@ obj-user-remover-exec := int_remover.o sample_processor.o
 
 target-remover-exec := int_remover
 
+# Remover Test Targets
+
+obj-user-remover-test := int_remover_test.o
+
+target-remover-test := int_remover_test
+
 # INT Inserter Targets
 
 obj-user-inserter-exec := int_inserter.o
 
 target-inserter-exec := int_inserter
+
+# Inserter Test Targets
+
+obj-user-inserter-test := int_inserter_test.o
+
+target-inserter-test := int_inserter_test
 
 # XDP Redirect Targets
 
@@ -17,15 +29,11 @@ obj-user-redirect-exec := redirect.o
 
 target-redirect-exec := redirect
 
-# Test Targets
-
-obj-user-test := int_remover_test.o
-
-target-test := int_remover_test
-
 # Generic Targets
 
-obj-user := $(obj-user-remover-exec) $(obj-user-inserter-exec) $(obj-user-redirect-exec) $(obj-user-test)
+obj-user := $(obj-user-remover-exec) $(obj-user-inserter-exec) $(obj-user-redirect-exec) $(obj-user-remover-test) $(obj-user-inserter-test)
+
+target-test := $(target-remover-test) $(target-inserter-test)
 
 targets := $(target-remover-exec) $(target-inserter-exec) $(target-redirect-exec)
 
@@ -52,7 +60,9 @@ $(target-inserter-exec): $(obj-user-inserter-exec) $(OBJECT_LIBBPF)
 
 $(target-redirect-exec): $(obj-user-redirect-exec) $(OBJECT_LIBBPF)
 
-$(target-test): $(obj-user-test) $(OBJECT_LIBBPF)
+$(target-remover-test): $(obj-user-remover-test) $(OBJECT_LIBBPF)
+
+$(target-inserter-test): $(obj-user-inserter-test) $(OBJECT_LIBBPF)
 
 $(targets): 
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
