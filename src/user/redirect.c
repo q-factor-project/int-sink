@@ -6,6 +6,7 @@
 #include <unistd.h>
 #include <getopt.h>
 #include <sys/resource.h>
+#include <types/redirect_info.h>
 #include "sample_processor.h"
 
 // Arguments + Usage
@@ -126,7 +127,15 @@ int main(int argc, char **argv)
     signal(SIGINT, interrupt_handler);
     signal(SIGTERM, interrupt_handler);
 
-    obj->bss->redirect_ifindex = ofindex;
+    int key = 0;
+
+    struct redirect_info redirect_info = {
+        .dest = {},
+        .src = {},
+        .ifindex = ofindex,
+    };
+
+    bpf_map_update_elem(bpf_map__fd(obj->maps.redirect_info_arr), &key, &redirect_info, 0);
 
     prog_fd = bpf_program__fd(obj->progs.entry);
 
@@ -175,7 +184,6 @@ static void interrupt_handler(int signum)
     printf("Cleaning up\n");
     printf("Packets processed: %d\n", obj->bss->counter);
     printf("Packets dropped: %d\n", obj->bss->dropped);
-    printf("INT processed: %d\n", obj->bss->int_counter);
     printf("Failed redirects: %d\n", obj->bss->failed_redirect);
     __u32 curr_prog_id;
     if (ifindex > -1) {
