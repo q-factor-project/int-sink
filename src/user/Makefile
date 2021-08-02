@@ -19,23 +19,27 @@ target-redirect-exec := redirect
 
 # Test Targets
 
-obj-user-test := test.o
+obj-user-test := int_remover_test.o
 
-target-test := test
+target-test := int_remover_test
 
 # Generic Targets
 
 obj-user := $(obj-user-remover-exec) $(obj-user-inserter-exec) $(obj-user-redirect-exec) $(obj-user-test)
 
-targets := $(target-remover-exec) $(target-inserter-exec) $(target-redirect-exec) $(target-test)
+targets := $(target-remover-exec) $(target-inserter-exec) $(target-redirect-exec)
 
 # Rules
 
 phony += all
 
-all: $(targets)
+all: $(targets) test
 
-dep-user := $(obj-user:.o=.d) test.d
+phony += test
+
+test: $(target-test)
+
+dep-user := $(obj-user:.o=.d)
 
 $(dep-user): %.d: %.c
 	$(COMPILE.test.c) $< -M -MT '$(@:.d=.o) $@' > $@
@@ -58,7 +62,7 @@ $(obj-user): %.o: %.c $(OBJECT_LIBBPF)
 
 phony += clean
 
-clean-targets += $(targets) $(obj-user) $(dep-user)
+clean-targets += $(targets) $(target-test) $(obj-user) $(dep-user)
 
 clean:
 	-rm -f $(clean-targets)

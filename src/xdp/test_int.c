@@ -4,18 +4,18 @@
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
 
-int dropped;
+static struct meta_info * meta_create(struct xdp_md *ctx);
+static __u32 meta_delete(struct xdp_md *ctx);
 
 /*
  * Test point for INT removal
  */
 SEC("xdp")
-int test_int(struct xdp_md *ctx)
+__u32 test_int(struct xdp_md *ctx)
 {
     __u32 result;
     struct meta_info *meta_info = meta_create(ctx);
     if (!meta_info) {
-        dropped++;
         return XDP_DROP;
     }
     meta_info->csum_delta = 0;

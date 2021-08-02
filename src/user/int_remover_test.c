@@ -1,4 +1,4 @@
-#include <xdp/int_remover.skel.h>
+#include <xdp/int_remover_test.skel.h>
 #include <bpf/bpf.h>
 #include <unistd.h>
 #include <signal.h>
@@ -14,12 +14,12 @@ int main(int argc, char** argv)
     unsigned int result;
     
     int prog_fd;
-    struct int_remover_bpf *obj;
+    struct int_remover_test_bpf *obj;
 
     signal(SIGINT, interrupt_handler);
     signal(SIGTERM, interrupt_handler);
 
-    obj = int_remover_bpf__open_and_load();
+    obj = int_remover_test_bpf__open_and_load();
 
     if(!obj)
     {
@@ -45,7 +45,7 @@ int main(int argc, char** argv)
     run_test(prog_fd, int_payload_packet, sizeof(int_payload_packet), 100);
     fprintf(stdout, "================================================================================\n");
 
-    prog_fd = bpf_program__fd(obj->progs.driver);
+    prog_fd = bpf_program__fd(obj->progs.entry);
     if (prog_fd < 0)
     {
         fprintf(stderr, "Failed to retrieve program file descriptor.\n");
@@ -83,7 +83,7 @@ int main(int argc, char** argv)
     pause();
 CLEANUP:
     unlink("/sys/fs/bpf/int_test"); 
-    int_remover_bpf__destroy(obj);
+    int_remover_test_bpf__destroy(obj);
     return 0;
 }
 

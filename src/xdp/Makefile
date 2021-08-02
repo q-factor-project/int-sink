@@ -10,6 +10,13 @@ obj-bpf-int-remove += entry.bpf.o
 
 target-int-remove-skel := int_remover.skel.h
 
+# XDP Test INT Removal Targets
+
+obj-bpf-int-remove-test := $(obj-bpf-int-remove)
+obj-bpf-int-remove-test += test_int.bpf.o
+
+target-int-remove-test-skel := int_remover_test.skel.h
+
 # INT Inserter Targets
 
 obj-bpf-int-insert := int_push.bpf.o
@@ -32,15 +39,25 @@ target-redirect-skel := redirect.skel.h
 
 obj-bpf-generic := no_op.bpf.o 
 
-obj-bpf := $(obj-bpf-redirect) $(obj-bpf-int-insert) $(obj-bpf-int-remove) $(obj-bpf-generic)
+obj-bpf := $(obj-bpf-generic)
+obj-bpf += $(obj-bpf-redirect)
+obj-bpf += $(obj-bpf-int-insert)
+obj-bpf += $(obj-bpf-int-remove)
+obj-bpf += $(obj-bpf-int-remove-test)
 
-target-skel := $(target-redirect-skel) $(target-int-insert-skel) $(target-int-remove-skel)
+target-test-skel := $(target-int-remove-test-skel)
+
+target-skel := $(target-redirect-skel) $(target-int-insert-skel) $(target-int-remove-skel) $(target-test-skel)
 
 # Rules
 
 phony += all
 
 all: $(target-skel)
+
+phony += test
+
+test: $(target-test-skel)
 
 dep-bpf := $(obj-bpf:.bpf.o=.bpf.d)
 
@@ -52,6 +69,8 @@ $(dep-bpf): %.bpf.d: %.c
 target-bpf := $(target-skel:.skel.h=.bpf.o)
 
 $(target-int-remove-skel:.skel.h=.bpf.o): $(obj-bpf-int-remove) $(obj-bpf-generic)
+
+$(target-int-remove-test-skel:.skel.h=.bpf.o): $(obj-bpf-int-remove-test) $(obj-bpf-generic)
 
 $(target-int-insert-skel:.skel.h=.bpf.o): $(obj-bpf-int-insert) $(obj-bpf-generic)
 
