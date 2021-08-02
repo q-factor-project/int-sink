@@ -141,7 +141,7 @@ int main(int argc, char **argv)
         }
     }
 
-    prog_fd = bpf_program__fd(obj->progs.driver);
+    prog_fd = bpf_program__fd(obj->progs.driver_entry);
 
     if(!prog_fd)
     {

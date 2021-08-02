@@ -15,7 +15,14 @@ static __u32 meta_delete(struct xdp_md *ctx);
  * Entry point into xdp program.
  */
 SEC("xdp")
-int driver(struct xdp_md *ctx)
+__u32 driver_entry(struct xdp_md *ctx)
+{
+    return driver(ctx);
+}
+
+
+
+__u32 driver(struct xdp_md *ctx)
 {
     counter++;
     __u32 result;
@@ -43,29 +50,6 @@ int driver(struct xdp_md *ctx)
         dropped++;
         return XDP_DROP;
     }
-}
-
-/*
- * Test point for INT removal
- */
-SEC("xdp")
-int test_int(struct xdp_md *ctx)
-{
-    __u32 result;
-    struct meta_info *meta_info = meta_create(ctx);
-    if (!meta_info) {
-        dropped++;
-        return XDP_DROP;
-    }
-    meta_info->csum_delta = 0;
-    meta_info->ip_tos = 0x17 << 2;
-    // meta_info->offset = 14;
-    meta_info->size_delta = 0;
-    bpf_xdp_adjust_tail(ctx, 14); // Work around, allowing for shrinking the packet until its empty
-    result = process_int(ctx);
-    bpf_xdp_adjust_tail(ctx, -14); // Work around, allowing for shrinking the packet until its empty
-    meta_delete(ctx);
-    return result;
 }
 
 static struct meta_info * meta_create(struct xdp_md *ctx)

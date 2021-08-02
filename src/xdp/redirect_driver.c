@@ -1,5 +1,4 @@
 #include "process.h"
-#include "meta.h"
 
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
@@ -42,7 +41,7 @@ int redirect(struct xdp_md *ctx)
 KEEP_PACKET:
     pkt = (void *)(long)ctx->data;
     data_end = (void *)(long)ctx->data_end;
-    if(pkt + sizeof(struct ethhdr) > ctx->data_end)
+    if(pkt + sizeof(struct ethhdr) > data_end)
         goto REDIRECT_FAIL;
     
     if( !(redirect_info = bpf_map_lookup_elem(&redirect_info_arr, &key)) )
