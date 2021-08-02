@@ -13,6 +13,7 @@
 struct raw_int {
     struct int10_shim_t shim;
     struct int10_meta_t meta_header;
+    __u8 data[4 * 6];
 };
 
 static __u16 int_checksum(struct raw_int *buffer);
@@ -52,7 +53,18 @@ __u32 process_int(struct xdp_md *ctx)
             .rsvd2 = 0,
             .rsvd3 = 0,
         },
+        .data = {
+            0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF,
+            0xFF, 0xFF, 0xFF, 0xFF,
+        },
     };
+
+    ((__be16 *)data.data)[11] = htons((__u16)sizeof(struct raw_int));
+    ((__be16 *)data.data)[11] = ~htons(int_checksum(&data));
 
     memcpy((void*)(long)ctx->data, &data, sizeof(data));
 
@@ -73,9 +85,9 @@ static __u16 int_checksum(struct raw_int *buffer)
 {
     __u32 size = buffer->shim.len;
 
-    __u64 sum = 0;
+    __be64 sum = 0;
 
-    __u32 *buf = (void*)buffer;
+    __be32 *buf = (void*)buffer;
 
     #pragma unroll
     for(int i = 0; i < sizeof(*buffer) / sizeof(*buf); i++)
