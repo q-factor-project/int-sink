@@ -22,6 +22,12 @@ __u32 process_int(struct xdp_md *ctx)
 {
     struct meta_info *meta;
 
+    if (!(meta = meta_get(ctx)))
+        return FATAL_ERR;
+
+    if (meta->ip_tos >> 2 == DSCP_INT)
+        return NONFATAL_ERR;
+
     if (bpf_xdp_adjust_head(ctx, -(int)sizeof(struct raw_int)))
         return FATAL_ERR;
 
@@ -78,7 +84,7 @@ __u32 process_int(struct xdp_md *ctx)
     meta->size_delta += sizeof(struct raw_int);
 
 
-    return NONFATAL_ERR;
+    return NO_ERR;
 }
 
 static __u16 int_checksum(struct raw_int *buffer)
