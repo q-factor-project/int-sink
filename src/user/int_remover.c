@@ -16,6 +16,9 @@ static const struct option long_options[] = {
     {"pin", required_argument, NULL, 'p'},
     {"Force", no_argument, NULL, 'F'},
     {"skb", no_argument, NULL, 's'},
+    {"hardware", no_argument, NULL, 'H'},
+    {"driver", no_argument, NULL, 'd'},
+    {0, 0, NULL,  0 }
 };
 
 static const char usage_str[] =
@@ -27,6 +30,8 @@ static const char usage_str[] =
 "       --pin,        -p  <file>       location to pin INT ring buffer to.\n"
 "       --Force,      -F               force loading program\n"
 "       --skb         -s               load in socket buffer mode\n"
+"       --driver      -d               load in driver mode (DEFAULT)\n"
+"       --offload     -r               load in hardware offload mode\n"
 "       --help,       -h               display this menu\n";
 
 //Function prototypes
@@ -62,7 +67,7 @@ int main(int argc, char **argv)
 
     int opt = 0;
     int arg_index = 0;
-    while ((opt = getopt_long(argc, argv, "i:p:Fsh", long_options, &arg_index)) != -1)
+    while ((opt = getopt_long(argc, argv, "i:p:FsHh", long_options, &arg_index)) != -1)
     {
         switch (opt) {
         case 'i':
@@ -82,8 +87,17 @@ int main(int argc, char **argv)
             xdp_flags &= ~XDP_FLAGS_UPDATE_IF_NOEXIST;
             break;
         case 's':
-             xdp_flags |= XDP_FLAGS_SKB_MODE;
-             break;
+            xdp_flags &= ~XDP_FLAGS_MODES;
+            xdp_flags |= XDP_FLAGS_SKB_MODE;
+            break;
+        case 'd':
+            xdp_flags &= ~XDP_FLAGS_MODES;
+            xdp_flags |= XDP_FLAGS_DRV_MODE;
+            break;
+        case 'H':
+            xdp_flags &= ~XDP_FLAGS_MODES;
+            xdp_flags |= XDP_FLAGS_HW_MODE;
+            break;
         default:
         case 'h':
             fprintf(stdout, usage_str, argv[0]);
@@ -96,7 +110,7 @@ int main(int argc, char **argv)
         return 1;
     }
 
-    if (!(xdp_flags & XDP_FLAGS_SKB_MODE))
+    if (!(xdp_flags & XDP_FLAGS_MODES))
         xdp_flags |= XDP_FLAGS_DRV_MODE;
 
     struct rlimit memlock_limit = { RLIM_INFINITY, RLIM_INFINITY };
