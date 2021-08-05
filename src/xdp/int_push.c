@@ -76,11 +76,6 @@ __u32 process_int(struct xdp_md *ctx)
 
     meta->ip_tos = (DSCP_INT << 2) | (meta->ip_tos & 0b11);
 
-    __u32 csum_delta = meta->csum_delta;
-    csum_delta += int_checksum(&data);
-    csum_delta = (csum_delta & 0xFFFF) + (csum_delta >> 16);
-    meta->csum_delta = (csum_delta & 0xFFFF) + (csum_delta >> 16);
-
     meta->size_delta += sizeof(struct raw_int);
 
 

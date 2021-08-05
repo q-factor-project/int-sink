@@ -15,7 +15,6 @@ struct raw_int {
 };
 
 static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer);
-static __u16 int_checksum(struct raw_int *buffer);
 
 struct {
     __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
@@ -103,10 +102,6 @@ static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer)
     // Update IP tos, size delta and csum delta
     meta->ip_tos = (buffer->shim.DSCP << 2) | (meta->ip_tos & 0b11);
 
-    __u32 csum_delta = meta->csum_delta;
-    csum_delta += (__u16)(~int_checksum(buffer));
-    csum_delta = (csum_delta & 0xFFFF) + (csum_delta >> 16);
-    meta->csum_delta = (csum_delta & 0xFFFF) + (csum_delta >> 16); // Only single fold required
 
     meta->size_delta -= ((__u16)buffer->shim.len) << 2;
 
@@ -115,29 +110,4 @@ static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer)
         return FATAL_ERR;
 
     return NO_ERR;
-}
-
-static __u16 int_checksum(struct raw_int *buffer)
-{
-    __u32 size = buffer->shim.len;
-
-    __u64 sum = 0;
-
-    __u32 *buf = (void*)buffer;
-
-    #pragma unroll
-    for(int i = 0; i < sizeof(*buffer) / sizeof(*buf); i++)
-    {   
-        if ((buf + i + 1) > (buffer + 1) || i >= size)
-        {
-            break;
-        }
-        sum += buf[i];
-    }
-
-    sum = (sum >> 32) + (sum & 0xFFFFFFFF); // Fold into 32 bits
-    sum = (sum >> 32) + (sum & 0xFFFFFFFF); 
-    sum = (sum >> 16) + (sum & 0xFFFF); // Fold into 16 bits
-    sum = (sum >> 16) + (sum & 0xFFFF);
-    return ntohs(sum);
 }

@@ -9,11 +9,8 @@
 
 #include "meta.h"
 
-// static __u32 parse_udphdr(struct xdp_md *ctx); Redundant
 static __u32 packet_pop_udp(struct xdp_md *ctx, struct udphdr *udp);
 static __u32 packet_push_udp(struct xdp_md *ctx, struct udphdr *udp);
-static void udp_update_check(struct udphdr *udphdr, __u16 delta);
-static void udp_update_length(struct udphdr *udphdr, __u16 delta);
 
 __u32 process_udp(struct xdp_md *ctx)
 {
@@ -46,9 +43,6 @@ __u32 process_udp(struct xdp_md *ctx)
  */
 static __u32 packet_pop_udp(struct xdp_md *ctx, struct udphdr *udp)
 {
-    struct meta_info *meta = meta_get(ctx);
-    if (!meta)
-        return FATAL_ERR;
     void *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
 
@@ -83,8 +77,8 @@ static __u32 packet_push_udp(struct xdp_md *ctx, struct udphdr *udp)
         return FATAL_ERR;
 
     // Update from meta
-    udp_update_check(udp, meta->csum_delta);
-    udp_update_length(udp, meta->size_delta);
+    udp->check = 0;
+    udp->len = htons(ntohs(udp->len) + meta->size_delta);
 
     void *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
@@ -99,21 +93,3 @@ static __u32 packet_push_udp(struct xdp_md *ctx, struct udphdr *udp)
     return NO_ERR;
 }
 
-static void udp_update_length(struct udphdr *udphdr, __u16 delta)
-{
-    udphdr->len = htons(ntohs(udphdr->len) + delta);
-    udp_update_check(udphdr, delta); // Update for change in udp header
-    udp_update_check(udphdr, delta); // Update for change in ip pseudo header
-}
-
-static void udp_update_check(struct udphdr *udphdr, __u16 delta)
-{
-    if(udphdr->check)
-    {
-        __wsum sum;
-        sum = udphdr->check;
-        sum = htons(ntohs(sum) - delta);
-        sum = (sum & 0xFFFF) + (sum >> 16);
-        udphdr->check = (sum & 0xFFFF) + (sum >> 16);
-    }
-}

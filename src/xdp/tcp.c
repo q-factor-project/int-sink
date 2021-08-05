@@ -7,8 +7,6 @@
 #include "helpers/memory.h"
 #include "helpers/endian.h"
 
-#include "meta.h"
-
 static __u32 packet_pop_tcp(struct xdp_md *ctx, struct tcphdr *buffer);
 static __u32 packet_push_tcp(struct xdp_md *ctx, struct tcphdr *buffer);
 
@@ -40,10 +38,6 @@ __u32 process_tcp(struct xdp_md *ctx)
 
 static __u32 packet_pop_tcp(struct xdp_md *ctx, struct tcphdr *tcp)
 {
-    struct meta_info *meta = meta_get(ctx);
-    if (!meta)
-        return FATAL_ERR;
-    //__u32 *buf = (void*)buffer;
     void *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
 
@@ -68,10 +62,6 @@ static __u32 packet_push_tcp(struct xdp_md *ctx, struct tcphdr *tcp)
 {
     // Expand packet
     if (bpf_xdp_adjust_head(ctx, -(int)(sizeof(*tcp))))
-        return FATAL_ERR;
-
-    struct meta_info *meta = meta_get(ctx);
-    if (!meta)
         return FATAL_ERR;
 
     void *pkt = (void*)(long)ctx->data;

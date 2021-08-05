@@ -9,9 +9,7 @@ struct xdp_md;
 
 struct meta_info
 {
-    __be16 csum_delta;
     __u16 size_delta;
-    __u32 offset;
     __u8 ip_tos;
 };
 

@@ -18,9 +18,7 @@ __u32 test_int(struct xdp_md *ctx)
     if (!meta_info) {
         return XDP_DROP;
     }
-    meta_info->csum_delta = 0;
     meta_info->ip_tos = 0x17 << 2;
-    // meta_info->offset = 14;
     meta_info->size_delta = 0;
     bpf_xdp_adjust_tail(ctx, 14); // Work around, allowing for shrinking the packet until its empty
     result = process_int(ctx);
