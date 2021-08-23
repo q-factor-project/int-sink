@@ -184,7 +184,6 @@ static void interrupt_handler(int signum)
     printf("Cleaning up\n");
     printf("Packets processed: %d\n", obj->bss->counter);
     printf("Packets dropped: %d\n", obj->bss->dropped);
-    printf("INT processed: %d\n", obj->bss->int_counter);
     __u32 curr_prog_id;
     if (ifindex > -1) {
         if (bpf_get_link_xdp_id(ifindex, &curr_prog_id, xdp_flags)) {

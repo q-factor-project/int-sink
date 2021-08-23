@@ -4,8 +4,6 @@
 #include <linux/bpf.h>
 #include <bpf/bpf_helpers.h>
 
-int int_counter = 0;
-
 static struct meta_info * meta_create(struct xdp_md *ctx);
 static __u32 meta_delete(struct xdp_md *ctx);
 
@@ -24,7 +22,6 @@ __u32 driver(struct xdp_md *ctx)
     meta_delete(ctx);
     switch(result) {
     case NO_ERR:// INT PACKET
-        int_counter++;
         return XDP_PASS;
     case NONFATAL_ERR:// NON-INT PACKET
         return XDP_PASS;

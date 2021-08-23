@@ -14,8 +14,6 @@ struct raw_int {
     __u32 data[252];
 };
 
-static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer);
-
 struct {
     __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
     __type(key, __u32);
@@ -27,6 +25,10 @@ struct {
     __uint(type, BPF_MAP_TYPE_RINGBUF);
     __uint(max_entries, 1 << 14);
 } int_ring_buffer SEC(".maps");
+
+int int_counter = 0;
+
+static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer);
 
 __u32 process_int(struct xdp_md *ctx)
 {
@@ -50,6 +52,8 @@ __u32 process_int(struct xdp_md *ctx)
     int size = int_data->shim.len << 2;
 
     bpf_ringbuf_output(&int_ring_buffer, int_data, size, 0);
+
+    int_counter++;
 
     return NO_ERR;
 }
