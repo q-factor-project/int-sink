@@ -29,13 +29,19 @@ obj-user-redirect-exec := redirect.o
 
 target-redirect-exec := redirect
 
+# Generic XDP Attach Program
+
+obj-user-attach-exec := generic_attach.o
+
+target-attach-exec := xdp_attach
+
 # Generic Targets
 
-obj-user := $(obj-user-remover-exec) $(obj-user-inserter-exec) $(obj-user-redirect-exec) $(obj-user-remover-test) $(obj-user-inserter-test)
+obj-user := $(obj-user-remover-exec) $(obj-user-inserter-exec) $(obj-user-redirect-exec) $(obj-user-remover-test) $(obj-user-inserter-test) $(obj-user-attach-exec)
 
 target-test := $(target-remover-test) $(target-inserter-test)
 
-targets := $(target-remover-exec) $(target-inserter-exec) $(target-redirect-exec)
+targets := $(target-remover-exec) $(target-inserter-exec) $(target-redirect-exec) $(target-attach-exec)
 
 # Rules
 
@@ -63,6 +69,8 @@ $(target-redirect-exec): $(obj-user-redirect-exec) $(OBJECT_LIBBPF)
 $(target-remover-test): $(obj-user-remover-test) $(OBJECT_LIBBPF)
 
 $(target-inserter-test): $(obj-user-inserter-test) $(OBJECT_LIBBPF)
+
+$(target-attach-exec): $(obj-user-attach-exec) $(OBJECT_LIBBPF)
 
 $(targets): 
 	$(LINK.o) $^ $(LOADLIBES) $(LDLIBS) -o $@
