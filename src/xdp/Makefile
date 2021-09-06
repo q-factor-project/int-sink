@@ -42,11 +42,18 @@ obj-bpf-redirect := redirect_entry.bpf.o
 
 target-redirect-skel := redirect.skel.h
 
+# XDP INT Remover 2 Targets
+
+obj-bpf-int-remove2 := int_remover2.bpf.o
+
+target-int-remove2-skel := int_remover.2.0.skel.h
+
 # Generic Targets
 
 obj-bpf-generic := no_op.bpf.o 
 
 obj-bpf := $(obj-bpf-generic)
+obj-bpf += $(obj-bpf-int-remove2)
 obj-bpf += $(obj-bpf-redirect)
 obj-bpf += $(obj-bpf-int-insert)
 obj-bpf += $(obj-bpf-int-remove)
@@ -56,6 +63,7 @@ target-test-skel := $(target-int-remove-test-skel)
 target-test-skel += $(target-int-insert-test-skel)
 
 target-skel := $(target-redirect-skel)
+target-skel += $(target-int-remove2-skel)
 target-skel += $(target-int-insert-skel)
 target-skel += $(target-int-remove-skel)
 target-skel += $(target-test-skel)
@@ -86,6 +94,8 @@ $(target-int-remove-test-skel:.skel.h=.bpf.o): $(obj-bpf-int-remove-test) $(obj-
 $(target-int-insert-skel:.skel.h=.bpf.o): $(obj-bpf-int-insert) $(obj-bpf-generic)
 
 $(target-int-insert-test-skel:.skel.h=.bpf.o): $(obj-bpf-int-insert-test) $(obj-bpf-generic)
+
+$(target-int-remove2-skel:.skel.h=.bpf.o): $(obj-bpf-int-remove2)
 
 $(target-redirect-skel:.skel.h=.bpf.o): $(obj-bpf-redirect) $(obj-bpf-generic)
 
