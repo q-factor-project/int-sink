@@ -15,50 +15,30 @@ struct raw_int {
 };
 
 struct {
-    __uint(type, BPF_MAP_TYPE_PERCPU_ARRAY);
-    __type(key, __u32);
-    __type(value, struct raw_int);
-    __uint(max_entries, 1);
-} int_buffer SEC(".maps"); // Can not replace with output buffer
-
-struct {
-    __uint(type, BPF_MAP_TYPE_RINGBUF);
-    __uint(max_entries, 1 << 14);
+    __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
+    __uint(key_size, sizeof(__u32));
+	__uint(value_size, sizeof(__u32));
 } int_ring_buffer SEC(".maps");
 
 int int_counter = 0;
 
-static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer);
+static __u32 packet_pop_int(struct xdp_md *ctx);
 
 __u32 process_int(struct xdp_md *ctx)
 {
-    struct raw_int *int_data;
     __u32 result;
 
-    __u32 key = 0;
-
-    // Prepare buffer
-
-    int_data = bpf_map_lookup_elem(&int_buffer, &key);
-
-    if(!int_data)
-        return FATAL_ERR;
-
-    result = packet_pop_int(ctx, int_data);
+    result = packet_pop_int(ctx);
 
     if (result)
         return result;
-
-    int size = int_data->shim.len << 2;
-
-    bpf_ringbuf_output(&int_ring_buffer, int_data, size, 0);
 
     int_counter++;
 
     return NO_ERR;
 }
 
-static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer)
+static __u32 packet_pop_int(struct xdp_md *ctx)
 {
     struct meta_info *meta = meta_get(ctx);
     if (!meta)
@@ -69,48 +49,37 @@ static __u32 packet_pop_int(struct xdp_md *ctx, struct raw_int *buffer)
     int ip_dscp = meta->ip_tos >> 2;
     if ((ip_dscp & DSCP_INT) ^ DSCP_INT)
         return NONFATAL_ERR;
-
-    __u32 *buf = (void*)buffer;
+    
     void *pkt = (void*)(long)ctx->data;
     void *end = (void*)(long)ctx->data_end;
 
     // Parsing
 
     struct int10_shim_t *shim = pkt;
-    __u32 *pos = pkt;
 
     if (shim + 1 > end)
         return NONFATAL_ERR;
     
-    __u32 size = shim->len;
+    __u32 size = shim->len << 2;
 
-    if ((size * sizeof(*buf)) < sizeof(struct int10_shim_t))
-        return NONFATAL_ERR;
-
-    if ( ( pos + size ) > end)
+    if ( ( pkt + size ) > end)
         return NONFATAL_ERR;
 
     // End parsing
 
     // Copy from packet to buffer
-    #pragma unroll
-    for(int i = 0; i < sizeof(*buffer) / sizeof(*buf); i++)
-    {   
-        if ((pos + i + 1) > end || (buf + i + 1) > (buffer + 1) || i >= size )
-        {
-            break;
-        }
-        buf[i] = pos[i];
-    }
+    
+    __u64 flags = ((__u64)size << 32) | BPF_F_CURRENT_CPU;
+
+    bpf_perf_event_output(ctx, &int_ring_buffer, flags, &size, 4);
 
     // Update IP tos, size delta and csum delta
-    meta->ip_tos = (buffer->shim.DSCP << 2) | (meta->ip_tos & 0b11);
+    meta->ip_tos = (shim->DSCP << 2) | (meta->ip_tos & 0b11);
 
-
-    meta->size_delta -= ((__u16)buffer->shim.len) << 2;
+    meta->size_delta -= ((__u16)shim->len) << 2;
 
     // Shrinking packet
-    if (bpf_xdp_adjust_head(ctx, size * sizeof(*buf)))
+    if (bpf_xdp_adjust_head(ctx, size))
         return FATAL_ERR;
 
     return NO_ERR;
