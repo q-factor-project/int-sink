@@ -1,5 +1,5 @@
-#ifndef __HELPERS_MEMORY_H__
-#define __HELPERS_MEMORY_H__
+#ifndef __HELPERS_H__
+#define __HELPERS_H__
 
 #ifndef memset
 # define memset(dest, chr, n)   __builtin_memset((dest), (chr), (n))

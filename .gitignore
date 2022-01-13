@@ -2,6 +2,6 @@
 *.ll
 *.o
 *.skel.h
-/output/
+out/
 *.a
 *.d
