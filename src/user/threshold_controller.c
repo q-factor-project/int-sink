@@ -17,6 +17,7 @@ struct threshold_maps
 {
     int flow_thresholds;
     int hop_thresholds;
+    int flow_counters;
 };
 
 #define MAP_DIR "/sys/fs/bpf/test_maps"
@@ -27,6 +28,7 @@ struct threshold_maps
 
 void sample_func(struct threshold_maps *ctx, int cpu, void *data, __u32 size);
 void lost_func(struct threshold_maps *ctx, int cpu, __u64 cnt);
+void print_hop_key(struct hop_key *key);
 
 int main(int argc, char **argv)
 {
@@ -36,7 +38,9 @@ int main(int argc, char **argv)
 open_maps: {
         fprintf(stdout, "Opening maps.\n");
         //maps.counters = bpf_obj_get(MAP_DIR "/counters_map");
-        //maps.flow_counters = bpf_obj_get(MAP_DIR "/flow_counters_map");
+        fprintf(stdout, "Opening flow_counters_map.\n");
+        maps.flow_counters = bpf_obj_get(MAP_DIR "/flow_counters_map");
+        if (maps.flow_counters < 0) { goto close_maps; }
         fprintf(stdout, "Opening flow_thresholds_map.\n");
         maps.flow_thresholds = bpf_obj_get(MAP_DIR "/flow_thresholds_map");
         if (maps.flow_thresholds < 0) { goto close_maps; }
@@ -68,6 +72,8 @@ perf_event_loop: {
     }
 close_maps: {
         fprintf(stdout, "Closing maps.\n");
+        if (maps.flow_counters <= 0) { goto exit_program; }
+        close(maps.flow_counters);
         if (maps.flow_thresholds <= 0) { goto exit_program; }
         close(maps.flow_thresholds);
         if (maps.hop_thresholds <= 0) { goto exit_program; }
@@ -98,7 +104,7 @@ void sample_func(struct threshold_maps *ctx, int cpu, void *data, __u32 size)
         0
     };
     hop_key.hop_index = 0;
-    while (data + data_offset + sizeof(struct int_hop_metadata))
+    while (data + data_offset + sizeof(struct int_hop_metadata) <= data_end)
     {
         struct int_hop_metadata *hop_metadata_ptr = data + data_offset; 
         data_offset += sizeof(struct int_hop_metadata);
@@ -112,13 +118,31 @@ void sample_func(struct threshold_maps *ctx, int cpu, void *data, __u32 size)
         bpf_map_update_elem(ctx->hop_thresholds, &hop_key, &hop_threshold_update, BPF_ANY);
         if(hop_key.hop_index == 0) { flow_threshold_update.sink_time_threshold = ntohs(hop_metadata_ptr->ingress_time); }
         flow_threshold_update.hop_latency_threshold += ntohs(hop_metadata_ptr->egress_time) - ntohs(hop_metadata_ptr->ingress_time);
+        print_hop_key(&hop_key);
         hop_key.hop_index++;
     }
     flow_threshold_update.total_hops = hop_key.hop_index;
     bpf_map_update_elem(ctx->flow_thresholds, &hop_key.flow_key, &flow_threshold_update, BPF_ANY);
+    struct counter_set empty_counter = {};
+    bpf_map_update_elem(ctx->flow_counters, &(hop_key.flow_key), &empty_counter, BPF_NOEXIST);
 }
 
 void lost_func(struct threshold_maps *ctx, int cpu, __u64 cnt)
 {
     fprintf(stderr, "Missed %llu sets of packet metadata.\n", cnt);
+}
+
+void print_flow_key(struct flow_key *key)
+{
+    fprintf(stdout, "Flow Key:\n");
+    fprintf(stdout, "\tegress_switch:%X\n", key->switch_id);
+    fprintf(stdout, "\tegress_port:%hu\n", key->egress_port);
+    fprintf(stdout, "\tvlan_id:%hu\n", key->vlan_id);
+}
+
+void print_hop_key(struct hop_key *key)
+{
+    fprintf(stdout, "Hop Key:\n");
+    print_flow_key(&(key->flow_key));
+    fprintf(stdout, "\thop_index: %X\n", key->hop_index);
 }
