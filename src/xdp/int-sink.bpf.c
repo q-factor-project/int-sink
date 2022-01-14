@@ -186,6 +186,13 @@ export_int_metadata: {
         if (bpf_xdp_adjust_head(ctx, packetOffsetInBytes)) { goto reject; };
         if (export_int_metadata(ctx, bpf_ntohs(hdr.vlan.hdr.h_vlan_tag), metadata_length, packetSize)) { goto reject; };
         packetOffsetInBytes = metadata_length;
+        __u32 key = 1; // Count int packets received
+        struct counter_set *counter_set_ptr = bpf_map_lookup_elem(&counters_map, &key);
+        if (counter_set_ptr)
+        {
+            __sync_fetch_and_add(&(counter_set_ptr->packets), 1);
+            __sync_fetch_and_add(&(counter_set_ptr->bytes), packetSize);
+        }
         goto accept;
     }
 accept: {
