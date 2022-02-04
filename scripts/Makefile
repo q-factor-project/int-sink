@@ -57,3 +57,5 @@ $(multi-bpf-obj):
 $(call multi_depend, $(multi-bpf-obj), .bpf.o, -bpf-objs)
 
 targets += $(target-obj) $(target-bpf-obj) $(target-program)
+
+clean-targets += $(target-obj) $(target-bpf-obj) $(target-program) $(multi-obj) $(multi-bpf-obj) $(real-obj) $(real-bpf-obj)

@@ -66,6 +66,7 @@ $(DESTDIR):
 	mkdir -p $@
 
 targets :=
+clean-targets :=
 
 src = $(SRCDIR)/xdp
 
@@ -86,7 +87,7 @@ clean_outdir:
 	$(RM) $(DESTDIR)
 
 clearn_objects:
-	$(RM) $(targets)
+	$(RM) $(clean-targets)
 
 clean: clean_libbpf clean_outdir clearn_objects
 
