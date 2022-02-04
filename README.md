@@ -17,7 +17,6 @@ the following packages should be installed:
  - clang 12.0+
  - bpftool v5.12.0+
  - GNU make
- - iproute2
 
 Before you can get started building,
 make sure that the libbpf submodule has been pulled.
@@ -81,7 +80,7 @@ To attach the loaded program to the device,
 run the following command:
 
 ```bash
-ip link set dev <DEV-NAME> <XDP-MODE> pinned <BPF-FS-PIN-LOCATION>
+bpftool net attach <XDP-MODE> pinned <BPF-FS-PIN-LOCATION> dev <DEV-NAME>
 ```
 
 `<DEV-NAME>` should be replaced with the interface to attach to.
@@ -210,7 +209,7 @@ number of hops, followed by an array of INT metadata
 entries. The following definitions represent
 the expected output.
 
-```
+```c
 struct flow_key {
     __u32 switch_id;
     __u16 egress_port;
