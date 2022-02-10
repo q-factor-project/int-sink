@@ -26,6 +26,11 @@ struct threshold_maps
 #define QUEUE_OCCUPANCY_DELTA 80
 #define FLOW_SINK_TIME_DELTA 1000000000
 
+#define INT_DSCP (0x17)
+
+#define PERF_PAGE_COUNT 512
+#define MAX_FLOW_COUNTERS 512
+
 void sample_func(struct threshold_maps *ctx, int cpu, void *data, __u32 size);
 void lost_func(struct threshold_maps *ctx, int cpu, __u64 cnt);
 void print_hop_key(struct hop_key *key);
@@ -33,6 +38,7 @@ void print_hop_key(struct hop_key *key);
 int main(int argc, char **argv)
 {
     int perf_output_map;
+    int int_dscp_map;
     struct perf_buffer *pb;
     struct threshold_maps maps = {};
 open_maps: {
@@ -49,7 +55,16 @@ open_maps: {
         if (maps.hop_thresholds < 0) { goto close_maps; }
         fprintf(stdout, "Opening perf_output_map.\n");
         perf_output_map = bpf_obj_get(MAP_DIR "/perf_output_map");
-        if (maps.hop_thresholds < 0) { goto close_maps; }
+        if (perf_output_map < 0) { goto close_maps; }
+        fprintf(stdout, "Opening int_dscp_map.\n");
+        int_dscp_map = bpf_obj_get(MAP_DIR "/int_dscp_map");
+        if (int_dscp_map < 0) { goto close_maps; }
+    }
+set_int_dscp: {
+        fprintf(stdout, "Setting INT DSCP.\n");
+        __u32 int_dscp = INT_DSCP;
+        __u32 zero_value = 0;
+        bpf_map_update_elem(int_dscp_map, &int_dscp, &zero_value, BPF_NOEXIST);
     }
 open_perf_event: {
         fprintf(stdout, "Opening perf event buffer.\n");
@@ -58,12 +73,12 @@ open_perf_event: {
             (perf_buffer_lost_fn)lost_func,
             &maps
         };
-        pb = perf_buffer__new(perf_output_map, 512, &opts);
+        pb = perf_buffer__new(perf_output_map, PERF_PAGE_COUNT, &opts);
         if (pb == 0) { goto close_maps; }
     }
 perf_event_loop: {
         fprintf(stdout, "Running perf event loop.\n");
-        int err;
+        int err = 0;
         do {
             err = perf_buffer__poll(pb, 500);
         }
@@ -78,8 +93,10 @@ close_maps: {
         close(maps.flow_thresholds);
         if (maps.hop_thresholds <= 0) { goto exit_program; }
         close(maps.hop_thresholds);
-        if (maps.hop_thresholds <= 0) { goto exit_program; }
-        close(maps.hop_thresholds);
+        if (perf_output_map <= 0) { goto exit_program; }
+        close(perf_output_map);
+        if (int_dscp_map <= 0) { goto exit_program; }
+        close(int_dscp_map);
         if (pb == 0) { goto exit_program; }
         perf_buffer__free(pb);
     }

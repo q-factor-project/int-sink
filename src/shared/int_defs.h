@@ -4,8 +4,6 @@
 #include <linux/types.h>
 #include <asm/byteorder.h>
 
-#define INT_DSCP (0x17)
-
 /* INT Telemetry report */
 struct telemetry_report_v10_t {
 #if defined(__BIG_ENDIAN_BITFIELD)

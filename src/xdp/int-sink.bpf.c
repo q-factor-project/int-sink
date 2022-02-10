@@ -15,6 +15,13 @@ struct {
     __type(value, struct counter_set);
 } counters_map SEC(".maps");
 
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, 64);
+    __type(key, __u32);
+    __type(value, __u32);
+} int_dscp_map SEC(".maps");
+
 struct ethernet_t {
     struct ethhdr hdr;
     __u8 valid;
@@ -140,8 +147,8 @@ parse_ipv4: {
         memcpy(&(hdr.ip.hdr), ip_ptr, sizeof(struct iphdr));
         hdr.ip.valid = 1;
         packetOffsetInBytes += sizeof(struct iphdr);
-        if (ip_ptr->dscp != INT_DSCP) { goto pass; } // Confirm packet is INT
-        
+        __u32 dscp = ip_ptr->dscp;
+        if (!bpf_map_lookup_elem(&int_dscp_map, &dscp)) { goto pass; }
         switch (ip_ptr->protocol) {
             case 0x6: goto parse_tcp;
             case 0x11: goto parse_udp;
