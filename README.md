@@ -17,6 +17,7 @@ the following packages should be installed:
  - clang 12.0+
  - bpftool v5.12.0+
  - GNU make
+ - git
 
 Before you can get started building,
 make sure that the libbpf submodule has been pulled.
@@ -95,9 +96,15 @@ on the interface.
 
 # Configuration
 
-The int sink application has several configurable parameters.
-By default, the program will pass all int metadata received
-to the `perf_output_map`.
+The `int-sink+filter.bpf.o` application has several configurable parameters.
+In order for INT metadata to be identified,
+the INT DSCP must be configured.
+This can be configured through the
+`int_dscp_map`, by adding a new entry with
+the key set as the desired DSCP.
+Once the DSCP has been configured,
+the program will attempt to pass all
+INT metadata to the `perf_output_map`.
 However, it may be preferable that we only pass
 metadata for specific flows to the output map,
 or that the flow meets some threshold.
@@ -111,10 +118,10 @@ Updating _can_ be done with `bpftool`,
 however it is suggested that users develop
 their own programs to automate the process,
 and customize the solution to their needs.
-To do so, information about the map definitions
-is required.
-The following code is the definitions used for the
-threshold maps:
+An example of such a program is provided in
+`src/user/` as `threshold_controller`.
+For custom solutions, the following map definitions should
+be used:
 
 ```c
 struct flow_key {
@@ -157,11 +164,18 @@ struct {
     __type(key, struct hop_key);
     __type(value, struct hop_thresholds);
 } hop_thresholds_map SEC(".maps");
+
+struct {
+    __uint(type, BPF_MAP_TYPE_HASH);
+    __uint(max_entries, 64);
+    __type(key, __u32);
+    __type(value, __u32);
+} int_dscp_map SEC(".maps");
 ```
 
 # Output
 
-For output, the int sink application has sets of counters,
+For output, the `int-sink+filter.bpf.o` application has sets of counters,
 for counting the amount of packets received and the total bytes
 received.
 The counters are divided into two sets,
