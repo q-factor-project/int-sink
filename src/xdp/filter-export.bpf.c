@@ -74,12 +74,12 @@ parse_metadata: { // Read the first element to finish the flow key
             // Check thresholds
             struct hop_thresholds *hop_threshold_ptr = bpf_map_lookup_elem(&hop_thresholds_map, &hop_key);
             if (!hop_threshold_ptr) { goto export; } // Unknown, hop, pass to update
-            if (bpf_ntohs(hop_metadata_ptr->switch_id) != hop_threshold_ptr->switch_id) { goto export; }
-            if (ABS((bpf_ntohs(hop_metadata_ptr->queue_info) & 0xffffff), hop_threshold_ptr->queue_occupancy_threshold ) > hop_threshold_ptr->queue_occupancy_delta) { goto export; } 
-            if (ABS((bpf_ntohs(hop_metadata_ptr->egress_time) - bpf_ntohs(hop_metadata_ptr->ingress_time)), hop_threshold_ptr->hop_latency_threshold ) > hop_threshold_ptr->hop_latency_delta) { goto export; }
+            if (bpf_ntohl(hop_metadata_ptr->switch_id) != hop_threshold_ptr->switch_id) { goto export; }
+            if (ABS((bpf_ntohl(hop_metadata_ptr->queue_info) & 0xffffff), hop_threshold_ptr->queue_occupancy_threshold ) > hop_threshold_ptr->queue_occupancy_delta) { goto export; } 
+            if (ABS((bpf_ntohl(hop_metadata_ptr->egress_time) - bpf_ntohl(hop_metadata_ptr->ingress_time)), hop_threshold_ptr->hop_latency_threshold ) > hop_threshold_ptr->hop_latency_delta) { goto export; }
 
             // Add values to accumulators
-            total_hop_latency += bpf_ntohs(hop_metadata_ptr->egress_time) - bpf_ntohs(hop_metadata_ptr->ingress_time);
+            total_hop_latency += bpf_ntohl(hop_metadata_ptr->egress_time) - bpf_ntohl(hop_metadata_ptr->ingress_time);
             hop_key.hop_index += 1;
         }
     }

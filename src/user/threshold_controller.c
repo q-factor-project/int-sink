@@ -126,15 +126,15 @@ void sample_func(struct threshold_maps *ctx, int cpu, void *data, __u32 size)
         struct int_hop_metadata *hop_metadata_ptr = data + data_offset; 
         data_offset += sizeof(struct int_hop_metadata);
         struct hop_thresholds hop_threshold_update = {
-            ntohs(hop_metadata_ptr->egress_time) - ntohs(hop_metadata_ptr->ingress_time),
+            ntohl(hop_metadata_ptr->egress_time) - ntohl(hop_metadata_ptr->ingress_time),
             HOP_LATENCY_DELTA,
-            ntohs(hop_metadata_ptr->queue_info) & 0xffffff,
+            ntohl(hop_metadata_ptr->queue_info) & 0xffffff,
             QUEUE_OCCUPANCY_DELTA,
-            ntohs(hop_metadata_ptr->switch_id)
+            ntohl(hop_metadata_ptr->switch_id)
         };
         bpf_map_update_elem(ctx->hop_thresholds, &hop_key, &hop_threshold_update, BPF_ANY);
-        if(hop_key.hop_index == 0) { flow_threshold_update.sink_time_threshold = ntohs(hop_metadata_ptr->ingress_time); }
-        flow_threshold_update.hop_latency_threshold += ntohs(hop_metadata_ptr->egress_time) - ntohs(hop_metadata_ptr->ingress_time);
+        if(hop_key.hop_index == 0) { flow_threshold_update.sink_time_threshold = ntohl(hop_metadata_ptr->ingress_time); }
+        flow_threshold_update.hop_latency_threshold += ntohl(hop_metadata_ptr->egress_time) - ntohl(hop_metadata_ptr->ingress_time);
         print_hop_key(&hop_key);
         hop_key.hop_index++;
     }
