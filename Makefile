@@ -25,9 +25,12 @@ libraries := $(LIBBPF)
 
 CC = clang
 
+CXX = clang -x c++ -std=c++17
+
 BPFTOOL = bpftool
 
 COMPILE.bpf.c = $(CC) $(BPFCFLAGS) $(CPPFLAGS) $(BPF_TARGET_ARCH) -c
+COMPILE.bpf.cc = $(CXX) $(BPFCXXFLAGS) $(CPPFLAGS) $(BPF_TARGET_ARCH) -c
 
 LINK.bpf.o = $(BPFTOOL) gen object
 
@@ -43,6 +46,16 @@ BPFCFLAGS += -Wno-compare-distinct-pointer-types
 BPFCFLAGS += -Werror
 BPFCFLAGS += -O2
 BPFCFLAGS += -g
+
+BPFCXXFLAGS :=
+BPFCXXFLAGS += -Wall
+BPFCXXFLAGS += -Wno-unused-value
+BPFCXXFLAGS += -Wno-pointer-sign
+BPFCXXFLAGS += -Wno-compare-distinct-pointer-types
+BPFCXXFLAGS += -Werror
+BPFCXXFLAGS += -fno-exceptions
+BPFCXXFLAGS += -O2
+BPFCXXFLAGS += -g
 
 BPF_TARGET_ARCH = -target bpf
 

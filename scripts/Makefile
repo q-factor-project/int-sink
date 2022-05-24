@@ -49,8 +49,11 @@ $(multi-obj):
 $(call multi_depend, $(multi-obj), .o, -objs)
 $(call multi_depend, $(multi-obj), , -objs)
 
-$(real-bpf-obj): $(obj)/%.bpf.o: $(src)/%.bpf.c
-	$(COMPILE.bpf.c) $(OUTPUT_OPTION) $<
+#$(real-bpf-obj): $(obj)/%.bpf.o: $(src)/%.bpf.c
+#	$(COMPILE.bpf.c) $(OUTPUT_OPTION) $<
+
+$(real-bpf-obj): $(obj)/%.bpf.o: $(src)/%.bpf.cc
+	$(COMPILE.bpf.cc) $(OUTPUT_OPTION) $<
 
 $(multi-bpf-obj):
 	$(LINK.bpf.o) $@ $^
