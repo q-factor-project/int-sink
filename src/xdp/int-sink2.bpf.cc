@@ -4,24 +4,22 @@ extern "C" {
 	#include <shared/net_defs.h>
 }
 
-
-
 #include "bpf_helpers.hh"
 
 // Needed to name these structs as anonymous structs
 // in C++ can not have global linkage
 struct map_a {
-    __uint(type, BPF_MAP_TYPE_ARRAY);
-    __uint(max_entries, 2);
-    __type(key, __u32);
-    __type(value, struct counter_set);
+	__uint(type, BPF_MAP_TYPE_ARRAY);
+	__uint(max_entries, 2);
+	__type(key, __u32);
+	__type(value, struct counter_set);
 } counters_map SEC(".maps");
 
 struct map_b {
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __uint(max_entries, 64);
-    __type(key, __u32);
-    __type(value, __u32);
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 64);
+	__type(key, __u32);
+	__type(value, __u32);
 } int_dscp_map SEC(".maps");
 
 struct headers {
@@ -33,28 +31,6 @@ struct headers {
 	header<struct tcphdr> tcp;
 	header<struct int10_shim_t> shim;
 };
-
-constexpr static inline __u16 csum16_add(__u16 csum, __u16 addend) {
-	__u16 res = csum;
-	res += addend;
-	return (res + (res < addend));
-}
-constexpr static inline __u16 csum16_sub(__u16 csum, __u16 addend) {
-	return csum16_add(csum, ~addend);
-}
-constexpr static inline __u16 csum_replace2(__u16 csum, __u16 old, __u16 next) {
-	return (~csum16_add(csum16_sub(~csum, old), next));
-}
-
-template<typename T>
-constexpr static inline
-T abs(const T a, const T b)
-{
-	if (a > b)
-		return a - b;
-	else
-		return b - a;
-}
 
 static inline bool export_int_metadata(Parser &parser, struct headers &hdr);
 
@@ -129,6 +105,13 @@ parse_tcp: {
 	}
 parse_int: {
 		if (export_int_metadata(parser, hdr) == false) { goto reject; };
+		__u32 key = 1; // Count all packets received
+		auto counter_set_ptr = lookup(&counters_map, &key);
+		if (counter_set_ptr != nullptr)
+		{
+			__sync_fetch_and_add(&(counter_set_ptr->packets), 1);
+			__sync_fetch_and_add(&(counter_set_ptr->bytes), packetSize);
+		}
 		goto accept;
 	}
 accept: {
@@ -177,39 +160,39 @@ deparser: {
 }
 
 struct map_c {
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __uint(max_entries, 512);
-    __type(key, struct flow_key);
-    __type(value, struct counter_set);
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 512);
+	__type(key, struct flow_key);
+	__type(value, struct counter_set);
 } flow_counters_map SEC(".maps");
 
 struct map_d{
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __uint(max_entries, 512);
-    __type(key, struct flow_key);
-    __type(value, struct flow_thresholds);
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 512);
+	__type(key, struct flow_key);
+	__type(value, struct flow_thresholds);
 } flow_thresholds_map SEC(".maps");
 
 struct map_e {
-    __uint(type, BPF_MAP_TYPE_HASH);
-    __uint(max_entries, 512);
-    __type(key, struct hop_key);
-    __type(value, struct hop_thresholds);
+	__uint(type, BPF_MAP_TYPE_HASH);
+	__uint(max_entries, 512);
+	__type(key, struct hop_key);
+	__type(value, struct hop_thresholds);
 } hop_thresholds_map SEC(".maps");
 
 struct map_f{
-    __uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
-    __uint(key_size, sizeof(__u32));
-    __uint(value_size, sizeof(__u32));
+	__uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
+	__uint(key_size, sizeof(__u32));
+	__uint(value_size, sizeof(__u32));
 } perf_output_map SEC(".maps");
 
 
 #define MAX_HOPS 20
 
 struct flow_accumulator {
-    struct hop_key hop_key;
-    __u32 latency;
-    __u32 sink_time;
+	struct hop_key hop_key;
+	__u32 latency;
+	__u32 sink_time;
 };
 
 static inline bool within_threshold(const struct flow_thresholds &thresholds, const struct flow_accumulator &acc)
