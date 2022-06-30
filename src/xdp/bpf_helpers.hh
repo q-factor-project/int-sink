@@ -4,19 +4,6 @@
 #include <linux/bpf.h>
 #include <bpf/bpf_endian.h>
 
-
-#ifndef memset
-# define memset(dest, chr, n)   __builtin_memset((dest), (chr), (n))
-#endif
-
-#ifndef memcpy
-# define memcpy(dest, src, n)   __builtin_memcpy((dest), (src), (n))
-#endif
-
-#ifndef memmove
-# define memmove(dest, src, n)  __builtin_memmove((dest), (src), (n))
-#endif
-
 static void *(*bpf_map_lookup_elem)(void *map, const void * key) = reinterpret_cast<void*(*)(void*,const void*)>(BPF_FUNC_map_lookup_elem);
 
 static long (*bpf_xdp_adjust_head)(struct xdp_md *xdp_md, int delta) = reinterpret_cast<long(*)(struct xdp_md*, int)>(BPF_FUNC_xdp_adjust_head);
@@ -47,13 +34,6 @@ auto lookup(Map *map, const decltype(map->key) key)
 {
 	return (decltype(map->value)) bpf_map_lookup_elem(map, key);
 }
-
-
-#define SEC(name) \
-	_Pragma("GCC diagnostic push")						\
-	_Pragma("GCC diagnostic ignored \"-Wignored-attributes\"")		\
-	__attribute__((section(name), used))					\
-	_Pragma("GCC diagnostic pop")						\
 
 template<class T>
 struct header

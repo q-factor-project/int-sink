@@ -13,14 +13,14 @@ struct map_a {
 	__uint(max_entries, 2);
 	__type(key, __u32);
 	__type(value, struct counter_set);
-} counters_map SEC(".maps");
+} counters_map [[gnu::section(".maps")]];
 
 struct map_b {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 64);
 	__type(key, __u32);
 	__type(value, __u32);
-} int_dscp_map SEC(".maps");
+} int_dscp_map [[gnu::section(".maps")]];
 
 struct headers {
 	header<struct ethhdr> ethernet;
@@ -35,7 +35,7 @@ struct headers {
 static inline bool export_int_metadata(Parser &parser, struct headers &hdr);
 
 extern "C"
-SEC("xdp")
+[[gnu::section("xdp")]]
 int ebpf_filter(struct xdp_md *ctx) {
 	Parser parser = {ctx};
 	struct headers hdr = {};
@@ -164,27 +164,27 @@ struct map_c {
 	__uint(max_entries, 512);
 	__type(key, struct flow_key);
 	__type(value, struct counter_set);
-} flow_counters_map SEC(".maps");
+} flow_counters_map [[gnu::section(".maps")]];
 
 struct map_d{
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 512);
 	__type(key, struct flow_key);
 	__type(value, struct flow_thresholds);
-} flow_thresholds_map SEC(".maps");
+} flow_thresholds_map [[gnu::section(".maps")]];
 
 struct map_e {
 	__uint(type, BPF_MAP_TYPE_HASH);
 	__uint(max_entries, 512);
 	__type(key, struct hop_key);
 	__type(value, struct hop_thresholds);
-} hop_thresholds_map SEC(".maps");
+} hop_thresholds_map [[gnu::section(".maps")]];
 
 struct map_f{
 	__uint(type, BPF_MAP_TYPE_PERF_EVENT_ARRAY);
 	__uint(key_size, sizeof(__u32));
 	__uint(value_size, sizeof(__u32));
-} perf_output_map SEC(".maps");
+} perf_output_map [[gnu::section(".maps")]];
 
 
 #define MAX_HOPS 20
@@ -254,7 +254,7 @@ parse_metadata: {
 				__sync_fetch_and_add(&(counter_set_ptr->packets), 1);
 				__sync_fetch_and_add(&(counter_set_ptr->bytes), packetSize);
 			}
-			auto hop_threshold_ptr = (decltype(hop_thresholds_map.value))bpf_map_lookup_elem(&hop_thresholds_map, &accumulator.hop_key);
+			auto hop_threshold_ptr = lookup(&hop_thresholds_map, &accumulator.hop_key);
 			if (hop_threshold_ptr == nullptr) { goto export_meta; }
 			if (within_threshold(*hop_threshold_ptr, *hop_metadata_ptr) == false) { goto export_meta; }
 			accumulator.latency += bpf_ntohl(hop_metadata_ptr->egress_time) - bpf_ntohl(hop_metadata_ptr->ingress_time);
