@@ -274,4 +274,4 @@ export_meta: {
 	}
 }
 
-char _license[] SEC("license") = "GPL";
+[[gnu::section("license")]] char _license[] = "GPL";
