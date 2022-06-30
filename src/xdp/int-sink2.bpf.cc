@@ -215,7 +215,7 @@ static inline bool export_int_metadata(Parser &parser, struct headers &hdr)
 {
 	int metadata_length = 0;
 	int packetSize = parser.packet_size();
-	struct flow_accumulator accumulator = {{{0, 0, bpf_ntohs(hdr.vlan.hdr.h_vlan_tag)}, 0}, 0, 0};
+	struct flow_accumulator accumulator = {{{0, 0, bpf_ntohs(hdr.vlan.hdr.h_vlan_tag), bpf_ntohl(hdr.ip.hdr.saddr)}, 0}, 0, 0};
 	goto parse_shim;
 reject: { return false; }
 accept: {
