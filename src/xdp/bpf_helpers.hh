@@ -4,24 +4,11 @@
 #include <linux/bpf.h>
 #include <bpf/bpf_endian.h>
 
-
-#ifndef memset
-# define memset(dest, chr, n)   __builtin_memset((dest), (chr), (n))
-#endif
-
-#ifndef memcpy
-# define memcpy(dest, src, n)   __builtin_memcpy((dest), (src), (n))
-#endif
-
-#ifndef memmove
-# define memmove(dest, src, n)  __builtin_memmove((dest), (src), (n))
-#endif
-
 static void *(*bpf_map_lookup_elem)(void *map, const void * key) = reinterpret_cast<void*(*)(void*,const void*)>(BPF_FUNC_map_lookup_elem);
 
 static long (*bpf_xdp_adjust_head)(struct xdp_md *xdp_md, int delta) = reinterpret_cast<long(*)(struct xdp_md*, int)>(BPF_FUNC_xdp_adjust_head);
 
-static long (*bpf_perf_event_output)(void *ctx, void *map, __u64 flags, void *data, __u64 size) = reinterpret_cast<long(*)(void *, void *, __u64, void *, __u64)>(BPF_FUNC_xdp_adjust_head);
+static long (*bpf_perf_event_output)(void *ctx, void *map, __u64 flags, void *data, __u64 size) = reinterpret_cast<long(*)(void *, void *, __u64, void *, __u64)>(BPF_FUNC_perf_event_output);
 
 /*
 template<class Key, class T,
@@ -47,13 +34,6 @@ auto lookup(Map *map, const decltype(map->key) key)
 {
 	return (decltype(map->value)) bpf_map_lookup_elem(map, key);
 }
-
-
-#define SEC(name) \
-	_Pragma("GCC diagnostic push")						\
-	_Pragma("GCC diagnostic ignored \"-Wignored-attributes\"")		\
-	__attribute__((section(name), used))					\
-	_Pragma("GCC diagnostic pop")						\
 
 template<class T>
 struct header
@@ -173,3 +153,24 @@ private:
 	int offset;
 };
 
+constexpr static inline __u16 csum16_add(__u16 csum, __u16 addend) {
+	__u16 res = csum;
+	res += addend;
+	return (res + (res < addend));
+}
+constexpr static inline __u16 csum16_sub(__u16 csum, __u16 addend) {
+	return csum16_add(csum, ~addend);
+}
+constexpr static inline __u16 csum_replace2(__u16 csum, __u16 old, __u16 next) {
+	return (~csum16_add(csum16_sub(~csum, old), next));
+}
+
+template<typename T>
+constexpr static inline
+T abs(const T a, const T b)
+{
+	if (a > b)
+		return a - b;
+	else
+		return b - a;
+}
