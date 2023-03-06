@@ -182,3 +182,5 @@ accept: {
         goto reject;
     }
 }
+
+char _license[] SEC("license") = "GPL";
