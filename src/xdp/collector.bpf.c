@@ -28,7 +28,7 @@ int ebpf_filter(struct xdp_md *ctx) {
     void* packetEnd = (void*)(long)ctx->data_end;
     __u64 packetSize = packetEnd - packetStart;
     __u16 vlan_id = 0;
-    __u32 ip_saddr;
+    __u32 ip_saddr = 0;
     __u32 metadata_length;
     goto start;
     reject: { return XDP_DROP; }
