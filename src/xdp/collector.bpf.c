@@ -28,6 +28,7 @@ int ebpf_filter(struct xdp_md *ctx) {
     void* packetEnd = (void*)(long)ctx->data_end;
     __u64 packetSize = packetEnd - packetStart;
     __u16 vlan_id = 0;
+    __u16 tcp_sport = 0;
     __u32 ip_saddr = 0;
     __u32 metadata_length;
     goto start;
@@ -147,7 +148,8 @@ parse_inner_udp: {
     }
 parse_inner_tcp: {
         if (packetEnd < packetStart + packetOffsetInBytes + sizeof(struct tcphdr)) { goto reject; }
-        //struct tcphdr* tcp_ptr = packetStart + packetOffsetInBytes;
+        struct tcphdr* tcp_ptr = packetStart + packetOffsetInBytes;
+        tcp_sport = bpf_ntohs(tcp_ptr->source);
         packetOffsetInBytes += sizeof(struct tcphdr);
         goto parse_shim;
     }
@@ -169,7 +171,7 @@ parse_metadata_header: {
     }
 export_int_metadata: {
         if (bpf_xdp_adjust_head(ctx, packetOffsetInBytes)) { goto reject; };
-        if (export_int_metadata(ctx, vlan_id, metadata_length, packetSize, ip_saddr)) { goto reject; };
+        if (export_int_metadata(ctx, vlan_id, metadata_length, packetSize, ip_saddr, tcp_sport)) { goto reject; };
         packetOffsetInBytes = metadata_length;
         __u32 key = 1; // Count int packets received
         struct counter_set *counter_set_ptr = bpf_map_lookup_elem(&counters_map, &key);

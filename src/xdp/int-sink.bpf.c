@@ -191,7 +191,7 @@ parse_metadata_header: {
     }
 export_int_metadata: {
         if (bpf_xdp_adjust_head(ctx, packetOffsetInBytes)) { goto reject; };
-        if (export_int_metadata(ctx, bpf_ntohs(hdr.vlan.hdr.h_vlan_tag), metadata_length, packetSize, bpf_ntohl(hdr.ip.hdr.saddr))) { goto reject; };
+        if (export_int_metadata(ctx, bpf_ntohs(hdr.vlan.hdr.h_vlan_tag), metadata_length, packetSize, bpf_ntohl(hdr.ip.hdr.saddr), bpf_ntohs(hdr.tcp.hdr.source))) { goto reject; };
         packetOffsetInBytes = metadata_length;
         __u32 key = 1; // Count int packets received
         struct counter_set *counter_set_ptr = bpf_map_lookup_elem(&counters_map, &key);
