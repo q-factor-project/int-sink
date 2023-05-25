@@ -40,7 +40,7 @@ struct {
 
 #define ABS(a, b) ((a>b)? (a-b):(b-a))
 
-int export_int_metadata(struct xdp_md *ctx, __u16 vlan_id, __u16 metadata_length, __u64 packet_size, struct sTcp_Socket *pSrc_socket)
+int export_int_metadata(struct xdp_md *ctx, __u16 vlan_id, __u16 metadata_length, __u64 packet_size, __u64 vSrc_Socket)
 {
     void* packetStart = (void*)(long)ctx->data;
     void* packetEnd = (void*)(long)ctx->data_end;
@@ -59,8 +59,8 @@ parse_metadata: { // Read the first element to finish the flow key
             struct int_hop_metadata* hop_metadata_ptr = packetStart + packetOffsetInBytes;
             packetOffsetInBytes += sizeof(struct int_hop_metadata);
             metadata_remaining -= sizeof(struct int_hop_metadata);
-	    hop_key.flow_key.src_ip = pSrc_socket->ip_saddr;
-	    hop_key.flow_key.src_port = pSrc_socket->tcp_sport;
+	    hop_key.flow_key.src_ip = vSrc_Socket >> 32;
+	    hop_key.flow_key.src_port = vSrc_Socket & 0xFFFF;
             if (hop_key.hop_index == 0)
             {
                 // Complete the flow key

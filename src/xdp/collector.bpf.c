@@ -26,7 +26,7 @@ int ebpf_filter(struct xdp_md *ctx) {
     unsigned packetOffsetInBytes = 0;
     void* packetStart = (void*)(long)ctx->data;
     void* packetEnd = (void*)(long)ctx->data_end;
-    struct  sTcp_Socket pSrc_socket = {0,0};
+    __u64 vSrc_Socket = 0;
     __u64 packetSize = packetEnd - packetStart;
     __u16 vlan_id = 0;
     __u32 metadata_length;
@@ -131,7 +131,7 @@ parse_inner_qinq: {
 parse_inner_ipv4: {
         if (packetEnd < packetStart + packetOffsetInBytes + sizeof(struct iphdr)) { goto reject; }
         struct iphdr* ip_ptr = packetStart + packetOffsetInBytes;
-	pSrc_socket.ip_saddr = bpf_ntohl(ip_ptr->saddr);
+	vSrc_Socket =  (vSrc_Socket + bpf_ntohl(ip_ptr->saddr)) << 32;
         packetOffsetInBytes += sizeof(struct iphdr);
         switch (ip_ptr->protocol) {
             case 0x6: goto parse_inner_tcp;
@@ -148,7 +148,7 @@ parse_inner_udp: {
 parse_inner_tcp: {
         if (packetEnd < packetStart + packetOffsetInBytes + sizeof(struct tcphdr)) { goto reject; }
         struct tcphdr* tcp_ptr = packetStart + packetOffsetInBytes;
-        pSrc_socket.tcp_sport = bpf_ntohs(tcp_ptr->source);
+        vSrc_Socket += bpf_ntohs(tcp_ptr->source);
         packetOffsetInBytes += sizeof(struct tcphdr);
         goto parse_shim;
     }
@@ -170,7 +170,7 @@ parse_metadata_header: {
     }
 export_int_metadata: {
         if (bpf_xdp_adjust_head(ctx, packetOffsetInBytes)) { goto reject; };
-        if (export_int_metadata(ctx, vlan_id, metadata_length, packetSize, &pSrc_socket)) { goto reject; };
+        if (export_int_metadata(ctx, vlan_id, metadata_length, packetSize, vSrc_Socket)) { goto reject; };
         packetOffsetInBytes = metadata_length;
         __u32 key = 1; // Count int packets received
         struct counter_set *counter_set_ptr = bpf_map_lookup_elem(&counters_map, &key);

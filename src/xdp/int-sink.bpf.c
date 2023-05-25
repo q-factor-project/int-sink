@@ -79,7 +79,7 @@ int ebpf_filter(struct xdp_md *ctx) {
     void* packetStart = (void*)(long)ctx->data;
     void* packetEnd = (void*)(long)ctx->data_end;
     __u64 packetSize = packetEnd - packetStart;
-    struct  sTcp_Socket pSrc_socket = {0,0};
+    __u64 vSrc_Socket = 0;
     unsigned packetOffsetInBytes = 0;
     __u16 metadata_length = 0;
     struct headers hdr = {
@@ -147,7 +147,7 @@ parse_ipv4: {
         struct iphdr* ip_ptr = packetStart + packetOffsetInBytes;
         memcpy(&(hdr.ip.hdr), ip_ptr, sizeof(struct iphdr));
         hdr.ip.valid = 1;
-        pSrc_socket.ip_saddr = bpf_ntohl(ip_ptr->saddr);
+        vSrc_Socket = (vSrc_Socket + bpf_ntohl(ip_ptr->saddr)) << 32;;
         packetOffsetInBytes += sizeof(struct iphdr);
         __u32 dscp = ip_ptr->dscp;
         if (!bpf_map_lookup_elem(&int_dscp_map, &dscp)) { goto pass; }
@@ -170,7 +170,7 @@ parse_tcp: {
         struct tcphdr* tcp_ptr = packetStart + packetOffsetInBytes;
         memcpy(&(hdr.tcp.hdr), tcp_ptr, sizeof(struct tcphdr));
         hdr.tcp.valid = 1;
-	pSrc_socket.tcp_sport = bpf_ntohs(tcp_ptr->source);
+	vSrc_Socket += bpf_ntohs(tcp_ptr->source);
         packetOffsetInBytes += sizeof(struct tcphdr);
         goto parse_shim;
     }
@@ -194,7 +194,7 @@ parse_metadata_header: {
     }
 export_int_metadata: {
         if (bpf_xdp_adjust_head(ctx, packetOffsetInBytes)) { goto reject; };
-        if (export_int_metadata(ctx, bpf_ntohs(hdr.vlan.hdr.h_vlan_tag), metadata_length, packetSize, &pSrc_socket)) { goto reject; };
+        if (export_int_metadata(ctx, bpf_ntohs(hdr.vlan.hdr.h_vlan_tag), metadata_length, packetSize, vSrc_Socket)) { goto reject; };
         packetOffsetInBytes = metadata_length;
         __u32 key = 1; // Count int packets received
         struct counter_set *counter_set_ptr = bpf_map_lookup_elem(&counters_map, &key);
