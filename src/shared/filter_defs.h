@@ -6,6 +6,7 @@
 
 // Map Keys
 
+#define INCLUDE_SRC_PORT 1
 struct flow_key {
     __u32 switch_id;
     __u16 egress_port;
