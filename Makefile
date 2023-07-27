@@ -81,7 +81,7 @@ $(DESTDIR):
 targets :=
 clean-targets :=
 
-src = $(SRCDIR)/xdp
+src = $(SRCDIR)/bpf
 
 include $(SCRIPTSDIR)/Makefile
 

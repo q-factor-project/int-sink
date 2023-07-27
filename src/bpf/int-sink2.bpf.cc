@@ -4,7 +4,7 @@ extern "C" {
 	#include <shared/net_defs.h>
 }
 
-#include "bpf_helpers.hh"
+#include "xdp_helpers.hh"
 
 // Needed to name these structs as anonymous structs
 // in C++ can not have global linkage
