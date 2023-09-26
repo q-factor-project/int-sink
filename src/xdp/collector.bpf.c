@@ -21,7 +21,6 @@ struct {
     __uint(max_entries, 256);
 } int_collector_ports_map SEC(".maps");
 
-SEC("xdp")
 int ebpf_filter(struct xdp_md *ctx) {
     unsigned packetOffsetInBytes = 0;
     void* packetStart = (void*)(long)ctx->data;

@@ -15,13 +15,13 @@ struct {
 
 int ebpf_filter(struct xdp_md *ctx);
 
-SEC("XDP")
-int debug_filter(struct xdp_md *ctx) {
+SEC("xdp")
+int entry(struct xdp_md *ctx) {
     void* packetStart = (void*)(long)ctx->data;
     void* packetEnd = (void*)(long)ctx->data_end;
     __u32 packetLen = packetEnd - packetStart;
     if (packetLen < 128) {
-        bpf_perf_event_output(ctx, &perf_debug_map, (__u64)packetLen << 32, 0, 0);
+        bpf_perf_event_output(ctx, &perf_debug_map, (__u64)packetLen << 32, &packetLen, 0);
     }
     return ebpf_filter(ctx);
 }

@@ -74,7 +74,6 @@ inline __u16 csum_replace2(__u16 csum, __u16 old, __u16 new) {
     return (~csum16_add(csum16_sub(~csum, old), new));
 }
 
-SEC("xdp")
 int ebpf_filter(struct xdp_md *ctx) {
     void* packetStart = (void*)(long)ctx->data;
     void* packetEnd = (void*)(long)ctx->data_end;
