@@ -21,7 +21,12 @@ int entry(struct xdp_md *ctx) {
     void* packetEnd = (void*)(long)ctx->data_end;
     __u32 packetLen = packetEnd - packetStart;
     if (packetLen < 128) {
-        bpf_perf_event_output(ctx, &perf_debug_map, (__u64)packetLen << 32, &packetLen, 0);
+        bpf_perf_event_output(
+            ctx,
+            &perf_debug_map,
+            (__u64)packetLen << 32 | BPF_F_CURRENT_CPU,
+            &packetLen, 0
+        );
     }
     return ebpf_filter(ctx);
 }
