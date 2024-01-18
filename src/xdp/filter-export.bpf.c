@@ -1,6 +1,8 @@
+//#include "export.h"
+#include <shared/filter_defs.h>
 #include "export.h"
 
-#include <shared/filter_defs.h>
+//#include <shared/filter_defs.h>
 #include <shared/int_defs.h>
 #include <shared/net_defs.h>
 #include "helpers.h"
@@ -40,11 +42,13 @@ struct {
 
 #define ABS(a, b) ((a>b)? (a-b):(b-a))
 
-int export_int_metadata(struct xdp_md *ctx, __u16 vlan_id, __u16 metadata_length, __u64 packet_size, __u64 vSrc_Socket)
+int export_int_metadata(struct xdp_md *ctx, __u16 vlan_id, __u64 metadata_length_and_pInfo, __u64 packet_size, __u64 vSocket_Ipinfo)
 {
     void* packetStart = (void*)(long)ctx->data;
     void* packetEnd = (void*)(long)ctx->data_end;
     unsigned packetOffsetInBytes = 0;
+    __u16 metadata_length = metadata_length_and_pInfo;
+    __u32 vPorts = metadata_length_and_pInfo >> 32;
     __u16 metadata_remaining = metadata_length;
     __u32 total_hop_latency = 0;
     __u32 flow_sink_time = 0;
@@ -59,8 +63,10 @@ parse_metadata: { // Read the first element to finish the flow key
             struct int_hop_metadata* hop_metadata_ptr = packetStart + packetOffsetInBytes;
             packetOffsetInBytes += sizeof(struct int_hop_metadata);
             metadata_remaining -= sizeof(struct int_hop_metadata);
-	    hop_key.flow_key.src_ip = vSrc_Socket >> 32;
-	    hop_key.flow_key.src_port = vSrc_Socket & 0xFFFF;
+	    hop_key.flow_key.src_ip = (vSocket_Ipinfo  >> 32);
+	    hop_key.flow_key.dst_ip = (vSocket_Ipinfo & 0xFFFFFFFF);
+	    hop_key.flow_key.src_port = vPorts >> 16; 
+	    hop_key.flow_key.dst_port = vPorts & 0xFFFF;
             if (hop_key.hop_index == 0)
             {
                 // Complete the flow key

@@ -25,10 +25,12 @@ int ebpf_filter(struct xdp_md *ctx) {
     unsigned packetOffsetInBytes = 0;
     void* packetStart = (void*)(long)ctx->data;
     void* packetEnd = (void*)(long)ctx->data_end;
-    __u64 vSrc_Socket = 0;
+    __u64 vSocket_Ipinfo = 0;
     __u64 packetSize = packetEnd - packetStart;
     __u16 vlan_id = 0;
     __u32 metadata_length;
+    __u32 vSocket_Portinfo = 0;
+    __u64 metadata_length_and_pInfo = 0;
     goto start;
     reject: { return XDP_DROP; }
     pass: { return XDP_PASS; }
@@ -130,7 +132,8 @@ parse_inner_qinq: {
 parse_inner_ipv4: {
         if (packetEnd < packetStart + packetOffsetInBytes + sizeof(struct iphdr)) { goto reject; }
         struct iphdr* ip_ptr = packetStart + packetOffsetInBytes;
-	vSrc_Socket =  (vSrc_Socket + bpf_ntohl(ip_ptr->saddr)) << 32;
+	vSocket_Ipinfo =  (vSocket_Ipinfo + bpf_ntohl(ip_ptr->saddr)) << 32;
+	vSocket_Ipinfo =  vSocket_Ipinfo + bpf_ntohl(ip_ptr->daddr);
         packetOffsetInBytes += sizeof(struct iphdr);
         switch (ip_ptr->protocol) {
             case 0x6: goto parse_inner_tcp;
@@ -147,7 +150,9 @@ parse_inner_udp: {
 parse_inner_tcp: {
         if (packetEnd < packetStart + packetOffsetInBytes + sizeof(struct tcphdr)) { goto reject; }
         struct tcphdr* tcp_ptr = packetStart + packetOffsetInBytes;
-        vSrc_Socket += bpf_ntohs(tcp_ptr->source);
+        //vSrc_Socket += bpf_ntohs(tcp_ptr->source);
+	vSocket_Portinfo = (vSocket_Portinfo + bpf_ntohs(tcp_ptr->source)) << 16;
+	vSocket_Portinfo += bpf_ntohs(tcp_ptr->dest);
         packetOffsetInBytes += sizeof(struct tcphdr);
         goto parse_shim;
     }
@@ -169,7 +174,9 @@ parse_metadata_header: {
     }
 export_int_metadata: {
         if (bpf_xdp_adjust_head(ctx, packetOffsetInBytes)) { goto reject; };
-        if (export_int_metadata(ctx, vlan_id, metadata_length, packetSize, vSrc_Socket)) { goto reject; };
+	metadata_length_and_pInfo = (metadata_length_and_pInfo + vSocket_Portinfo) << 32;
+	metadata_length_and_pInfo += metadata_length;
+        if (export_int_metadata(ctx, vlan_id, metadata_length_and_pInfo, packetSize, vSocket_Ipinfo)) { goto reject; };
         packetOffsetInBytes = metadata_length;
         __u32 key = 1; // Count int packets received
         struct counter_set *counter_set_ptr = bpf_map_lookup_elem(&counters_map, &key);
