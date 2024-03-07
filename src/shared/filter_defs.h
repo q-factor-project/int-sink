@@ -12,8 +12,10 @@ struct flow_key {
     __u16 egress_port;
     __u16 vlan_id;
     __u32 src_ip;
+    __u32 dst_ip;
+    __u16 dst_port;
     __u16 src_port;
-    __u16 resv1;
+    __u32 resv1;
 };
 
 struct hop_key {
